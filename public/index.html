@@ -2,8 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
   <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#ccff00">
-<link rel="apple-touch-icon" href="/icon.png">
+  <meta name="theme-color" content="#ccff00">
+  <meta name="mobile-web-app-capable" content="yes">
   
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -351,40 +351,16 @@
     }
   </script>
   
-    <script>
-  let deferredPrompt;
-
+  <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .then(reg => console.log('SW Registered:', reg.scope))
-        .catch(err => console.error('SW Error:', err));
+        .then((reg) => console.log('PWA SW Active:', reg.scope))
+        .catch((err) => console.error('PWA SW Failed:', err));
     });
   }
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    
-    // Show a custom install banner or alert
-    const installBtn = document.createElement('button');
-    installBtn.innerText = '📲 INSTALL MATCHDAY APP';
-    installBtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;padding:14px 24px;background:#ccff00;color:#0b0f17;font-weight:800;border:none;border-radius:30px;box-shadow:0 4px 12px rgba(0,0,0,0.5);font-size:0.9rem;cursor:pointer;';
-    
-    document.body.appendChild(installBtn);
-
-    installBtn.addEventListener('click', () => {
-      installBtn.remove();
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-        }
-        deferredPrompt = null;
-      });
-    });
-  });
-    </script>
+  </script>
+  
   
 </body>
 </html>
