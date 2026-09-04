@@ -1,17 +1,26 @@
 {
   "short_name": "MATCHDAY",
   "name": "MATCHDAY Sports Engine",
+  "description": "Full market sports analytics and prediction engine",
   "id": "/",
-  "start_url": "/",
-  "background_color": "#0b0f17",
-  "theme_color": "#ccff00",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
+  "background_color": "#0b0f17",
+  "theme_color": "#ccff00",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/53/53283.png",
-      "type": "image/png",
       "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/192/53/53283.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
