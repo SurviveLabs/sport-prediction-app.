@@ -7,6 +7,5 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Direct network pass-through to ensure installation validation succeeds
   event.respondWith(fetch(event.request));
 });
