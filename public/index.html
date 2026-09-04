@@ -3,136 +3,222 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sport Prediction Engine</title>
+  <title>MATCHDAY | Multi-Sport Predictor</title>
   <style>
     :root[data-theme="dark"] {
-      --bg-color: #0f172a;
-      --card-bg: #1e293b;
-      --text-color: #f8fafc;
-      --border-color: #334155;
-      --accent: #38bdf8;
+      --bg-color: #0b0f17;
+      --card-bg: #131b2e;
+      --input-bg: #1a243b;
+      --text-color: #f1f5f9;
+      --text-dim: #94a3b8;
+      --border-color: #1e293b;
+      --accent-lime: #ccff00;
+      --accent-dark: #0f172a;
     }
     :root[data-theme="light"] {
       --bg-color: #f8fafc;
       --card-bg: #ffffff;
+      --input-bg: #f1f5f9;
       --text-color: #0f172a;
+      --text-dim: #64748b;
       --border-color: #e2e8f0;
-      --accent: #0284c7;
+      --accent-lime: #a3e635;
+      --accent-dark: #0f172a;
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
-      padding: 20px;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
+      padding: 16px;
       transition: background-color 0.3s, color 0.3s;
     }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    .header {
+    .container { max-width: 480px; margin: 0 auto; }
+
+    /* Top Bar */
+    .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
-    .toggle-btn {
+    .brand { font-weight: 800; font-size: 0.9rem; letter-spacing: 1px; }
+    .brand span { font-weight: 400; color: var(--text-dim); }
+    .theme-toggle {
       background: none;
       border: 1px solid var(--border-color);
       color: var(--text-color);
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
       cursor: pointer;
     }
+
+    /* Hero Heading */
+    .hero-title { font-size: 2rem; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
+    .hero-sub { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px; line-height: 1.4; }
+
+    /* Sport Tabs */
+    .sport-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-dim);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--accent-lime);
+      color: var(--accent-dark);
+      font-weight: 600;
+      border-color: var(--accent-lime);
+    }
+
+    /* Input Card */
     .card {
-      background-color: var(--card-bg);
+      background: var(--card-bg);
       border: 1px solid var(--border-color);
+      border-radius: 16px;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
     }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 0.9rem;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-color);
-      color: var(--text-color);
-      box-sizing: border-box;
-    }
-    button.submit-btn {
+    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+
+    .input-group { margin-bottom: 14px; }
+    .input-group label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-group input, .input-group select {
       width: 100%;
       padding: 12px;
-      background-color: var(--accent);
-      color: white;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-color);
+      font-size: 0.9rem;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Main Button */
+    .analyze-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent-lime);
+      color: var(--accent-dark);
       border: none;
       border-radius: 8px;
-      font-weight: bold;
       font-size: 1rem;
+      font-weight: 700;
       cursor: pointer;
+      margin-top: 10px;
     }
-    .result {
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px solid var(--border-color);
+
+    /* Result Box */
+    .result-card {
+      display: none;
+      background: var(--input-bg);
+      border-left: 4px solid var(--accent-lime);
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
     }
   </style>
 </head>
 <body>
+
   <div class="container">
-    <div class="header">
-      <h2>Predictor AI</h2>
-      <button class="toggle-btn" id="themeToggle">☀️ / 🌙 Mode</button>
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="brand">MATCHDAY <span>/ MULTI-SPORT</span></div>
+      <button class="theme-toggle" id="themeBtn">☀️ / 🌙</button>
     </div>
 
+    <!-- Hero Header -->
+    <h1 class="hero-title">Read the game<br>before it happens.</h1>
+    <p class="hero-sub">One workspace for five sports. Bring your numbers or search a fixture, then let the model find the edge.</p>
+
+    <!-- Sport Selector Tabs -->
+    <div class="sport-tabs">
+      <button class="tab-btn active">Football</button>
+      <button class="tab-btn">Basketball</button>
+      <button class="tab-btn">Ice Hockey</button>
+      <button class="tab-btn">Tennis</button>
+      <button class="tab-btn">Table Tennis</button>
+    </div>
+
+    <!-- Form Section -->
     <div class="card">
-      <div class="form-group">
+      <div class="card-title">Set the fixture</div>
+
+      <div class="input-group">
+        <label>Match Tier</label>
+        <select>
+          <option>Major Division - Tier 1/2</option>
+          <option>Lower Division - Tier 3+</option>
+        </select>
+      </div>
+
+      <div class="input-group">
         <label>Home Team</label>
         <input type="text" id="homeTeam" placeholder="e.g. Arsenal">
       </div>
-      <div class="form-group">
-        <label>Home Avg Goals</label>
-        <input type="number" id="homeAvg" step="0.1" value="1.8">
-      </div>
-      <div class="form-group">
+
+      <div class="input-group">
         <label>Away Team</label>
         <input type="text" id="awayTeam" placeholder="e.g. Chelsea">
       </div>
-      <div class="form-group">
-        <label>Away Avg Goals</label>
-        <input type="number" id="awayAvg" step="0.1" value="1.2">
-      </div>
-      <button class="submit-btn" onclick="getPrediction()">Analyze Match</button>
 
-      <div class="result" id="resultBlock" style="display:none;">
-        <h3 id="matchTitle"></h3>
-        <p>Expected Home Goals: <strong id="expHome"></strong></p>
-        <p>Expected Away Goals: <strong id="expAway"></strong></p>
-        <p>Recommended Tip: <strong id="tip" style="color: var(--accent);"></strong></p>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>Home Avg Scored</label>
+          <input type="number" id="homeAvg" step="0.01" value="1.82">
+        </div>
+        <div class="input-group">
+          <label>Home Avg Conceded</label>
+          <input type="number" id="homeConceded" step="0.01" value="0.92">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label>Away Avg Scored</label>
+          <input type="number" id="awayAvg" step="0.01" value="1.34">
+        </div>
+        <div class="input-group">
+          <label>Away Avg Conceded</label>
+          <input type="number" id="awayConceded" step="0.01" value="1.18">
+        </div>
+      </div>
+
+      <button class="analyze-btn" onclick="runAnalysis()">Analyze Match →</button>
+
+      <div class="result-card" id="resultCard">
+        <h3 id="resTitle" style="margin-bottom: 8px;"></h3>
+        <p>Total Exp. Goals: <strong id="resTotal"></strong></p>
+        <p style="margin-top: 4px;">Recommended Pick: <strong id="resTip" style="color: var(--accent-lime);"></strong></p>
       </div>
     </div>
   </div>
 
   <script>
-    // Theme Toggle Logic
-    const toggleBtn = document.getElementById('themeToggle');
-    toggleBtn.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', newTheme);
+    // Theme Toggle
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const html = document.documentElement;
+      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', nextTheme);
     });
 
-    // Prediction Logic
-    async function getPrediction() {
+    // Analysis Call
+    async function runAnalysis() {
       const homeTeam = document.getElementById('homeTeam').value || 'Home';
       const awayTeam = document.getElementById('awayTeam').value || 'Away';
       const homeAvg = document.getElementById('homeAvg').value;
@@ -145,14 +231,11 @@
       });
 
       const data = await res.json();
-      
-      document.getElementById('matchTitle').innerText = data.match;
-      document.getElementById('expHome').innerText = data.predictions.expectedGoalsHome;
-      document.getElementById('expAway').innerText = data.predictions.expectedGoalsAway;
-      document.getElementById('tip').innerText = data.predictions.recommendedTip;
-      document.getElementById('resultBlock').style.display = 'block';
+      document.getElementById('resTitle').innerText = data.match;
+      document.getElementById('resTotal').innerText = data.predictions.totalExpectedGoals;
+      document.getElementById('resTip').innerText = data.predictions.recommendedTip;
+      document.getElementById('resultCard').style.display = 'block';
     }
   </script>
 </body>
 </html>
-
