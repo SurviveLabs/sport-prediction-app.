@@ -1,17 +1,17 @@
-// Helper: Basic Poisson probability function
+// Helper: Poisson probability function
 function poisson(k, lambda) {
   let factorial = 1;
   for (let i = 1; i <= k; i++) factorial *= i;
   return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial;
 }
 
-// Helper: Calculate football matrix probabilities up to 5x5
+// Helper: Calculate football matrix probabilities up to 6x6 scorelines
 function calculateFootballMatrix(xGHome, xGAway) {
   let probHome = 0, probDraw = 0, probAway = 0;
   let probOver15 = 0, probOver25 = 0, probBTTS = 0;
 
-  for (let h = 0; h <= 5; h++) {
-    for (let a = 0; a <= 5; a++) {
+  for (let h = 0; h <= 6; h++) {
+    for (let a = 0; a <= 6; a++) {
       const p = poisson(h, xGHome) * poisson(a, xGAway);
       
       if (h > a) probHome += p;
@@ -62,7 +62,12 @@ export default async function handler(req, res) {
   if (sport === 'football') {
     const xGHome = (hAvg + aCon) / 2;
     const xGAway = (aAvg + hCon) / 2;
-    projection = { homeGoals: xGHome.toFixed(1), awayGoals: xGAway.toFixed(1) };
+
+    // Clean rounded integer representation for UI scoreline display
+    projection = { 
+      homeGoals: Math.round(xGHome), 
+      awayGoals: Math.round(xGAway) 
+    };
 
     const m = calculateFootballMatrix(xGHome, xGAway);
     const p1X = m.probHome + m.probDraw;
@@ -82,7 +87,7 @@ export default async function handler(req, res) {
       { label: 'Both Teams To Score (BTTS)', val: Math.round(m.probBTTS * 100) }
     ];
 
-    // Priority Selection Hierarchy: 1X/X2 -> Over 2.5 -> BTTS -> Straight Win -> Strict Over 1.5 (82%+)
+    // Priority Selection Hierarchy: 1X/X2 -> Over 2.5 -> BTTS -> Straight Win -> Strict Over 1.5
     if (p1X >= threshDec) {
       bestPick = { title: `${homeTeam.toUpperCase()} WIN OR DRAW (1X)`, confidence: Math.round(p1X * 100), passedFilter: true, desc: 'High structural home balance identified.' };
     } else if (pX2 >= threshDec) {
@@ -95,8 +100,8 @@ export default async function handler(req, res) {
       bestPick = { title: `${homeTeam.toUpperCase()} WIN (STRAIGHT)`, confidence: Math.round(m.probHome * 100), passedFilter: true, desc: 'Dominant home victory projection.' };
     } else if (m.probAway >= threshDec) {
       bestPick = { title: `${awayTeam.toUpperCase()} WIN (STRAIGHT)`, confidence: Math.round(m.probAway * 100), passedFilter: true, desc: 'Dominant away victory projection.' };
-    } else if (m.probOver15 >= 0.83) { // Raised threshold for Over 1.5 to prevent lock-in bias
-      bestPick = { title: 'OVER 1.5 GOALS', confidence: Math.round(m.probOver15 * 100), passedFilter: true, desc: 'Exceeds strict 83%+ safety baseline.' };
+    } else if (m.probOver15 >= 0.83) {
+      bestPick = { title: 'OVER 1.5 GOALS', confidence: Math.round(m.probOver15 * 100), passedFilter: true, desc: 'Exceeds strict safety baseline.' };
     }
 
   // ==========================================
@@ -137,7 +142,7 @@ export default async function handler(req, res) {
   } else if (sport === 'ice_hockey') {
     const xGHome = (hAvg + aCon) / 2;
     const xGAway = (aAvg + hCon) / 2;
-    projection = { homeGoals: xGHome.toFixed(1), awayGoals: xGAway.toFixed(1) };
+    projection = { homeGoals: Math.round(xGHome), awayGoals: Math.round(xGAway) };
 
     const pHomeWin = xGHome / (xGHome + xGAway + 0.5);
     const pAwayWin = xGAway / (xGHome + xGAway + 0.5);
@@ -170,7 +175,7 @@ export default async function handler(req, res) {
     const p1Win = p1Rating / (p1Rating + p2Rating);
     const p2Win = 1 - p1Win;
 
-    projection = { homeGoals: (p1Win * 2).toFixed(1), awayGoals: (p2Win * 2).toFixed(1) };
+    projection = { homeGoals: Math.round(p1Win * 2), awayGoals: Math.round(p2Win * 2) };
 
     stdMarkets = [
       { label: `${homeTeam} Match Winner`, val: Math.round(p1Win * 100) },
@@ -194,7 +199,7 @@ export default async function handler(req, res) {
   } else if (sport === 'table_tennis') {
     const p1Prob = hAvg / (hAvg + aAvg);
     const p2Prob = 1 - p1Prob;
-    projection = { homeGoals: (p1Prob * 3.5).toFixed(1), awayGoals: (p2Prob * 3.5).toFixed(1) };
+    projection = { homeGoals: Math.round(p1Prob * 3), awayGoals: Math.round(p2Prob * 3) };
 
     stdMarkets = [
       { label: `${homeTeam} Match Winner`, val: Math.round(p1Prob * 100) },
@@ -212,7 +217,7 @@ export default async function handler(req, res) {
     }
 
   // ==========================================
-  // 6–10. OTHER SPORTS ENGINE (American Football, Cricket, Baseball, Volleyball, Esports)
+  // 6–10. OTHER SPORTS ENGINE
   // ==========================================
   } else {
     const pHome = hAvg / (hAvg + aCon);
@@ -220,7 +225,7 @@ export default async function handler(req, res) {
     const normHome = pHome / (pHome + pAway);
     const normAway = 1 - normHome;
 
-    projection = { homeGoals: (normHome * 100).toFixed(0), awayGoals: (normAway * 100).toFixed(0) };
+    projection = { homeGoals: Math.round(normHome * 100), awayGoals: Math.round(normAway * 100) };
 
     stdMarkets = [
       { label: `${homeTeam} Win`, val: Math.round(normHome * 100) },
@@ -238,7 +243,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // Final Output Payload
   return res.status(200).json({
     sport,
     leagueTier,
@@ -248,4 +252,4 @@ export default async function handler(req, res) {
     stdMarkets,
     comboMarkets
   });
-        }
+                  }
