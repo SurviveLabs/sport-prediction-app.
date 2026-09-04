@@ -1,16 +1,18 @@
 {
   "short_name": "MATCHDAY",
-  "name": "MATCHDAY | Sports Analysis Engine",
+  "name": "MATCHDAY Sports Engine",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192.png?text=MATCHDAY",
+      "src": "/icon.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://via.placeholder.com/512.png?text=MATCHDAY",
+      "src": "/icon.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
@@ -19,4 +21,3 @@
   "display": "standalone",
   "orientation": "portrait"
 }
-
