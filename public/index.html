@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MATCHDAY | Auto-Filter Predictor</title>
+  <title>MATCHDAY | Combo Markets Engine</title>
   <style>
     :root[data-theme="dark"] {
       --bg-color: #0b0f17;
@@ -49,7 +49,7 @@
     .hero-sub { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px; line-height: 1.4; }
 
     .sport-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 20px; }
-    .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; }
+    .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
     .tab-btn.active { background: var(--accent-lime); color: var(--accent-dark); font-weight: 600; border-color: var(--accent-lime); }
 
     .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
@@ -63,7 +63,6 @@
 
     .analyze-btn { width: 100%; padding: 14px; background: var(--accent-lime); color: var(--accent-dark); border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
 
-    /* Dashboard UI */
     #dashboard { display: none; }
     .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; transition: all 0.3s; }
     .best-pick-card.no-bet { background: #334155; color: #f8fafc; border: 1px solid #475569; }
@@ -75,10 +74,7 @@
     .bar-wrapper { margin-bottom: 12px; }
     .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-dim); }
     .bar-track { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
-    .fill-lime { background: var(--accent-lime); }
-    .fill-blue { background: var(--accent-blue); }
-    .fill-red { background: var(--accent-red); }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; background: var(--accent-lime); }
 
     .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 12px 0; }
     .tier-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--input-bg); color: var(--accent-blue); font-weight: 700; text-transform: uppercase; }
@@ -88,12 +84,12 @@
 
   <div class="container">
     <div class="top-bar">
-      <div class="brand">MATCHDAY <span>/ AUTO-FILTER</span></div>
+      <div class="brand">MATCHDAY <span>/ COMBO MARKETS</span></div>
       <button class="theme-toggle" id="themeBtn">☀️ / 🌙</button>
     </div>
 
     <h1 class="hero-title">Read the game<br>before it happens.</h1>
-    <p class="hero-sub">Automated risk filtering instantly adjusts threshold limits based on sport efficiency and league tier.</p>
+    <p class="hero-sub">Enter stats to generate combo markets: Home/Away/Draw + Over/Under targets.</p>
 
     <div class="sport-tabs">
       <button class="tab-btn active" onclick="selectSport('football', this)">Football</button>
@@ -116,85 +112,58 @@
 
       <div class="grid-2">
         <div class="input-group">
-          <label id="lblHomeTeam">Home Team</label>
-          <input type="text" id="homeTeam" placeholder="e.g. Home Team">
+          <label id="lblHomeTeam">Home Name</label>
+          <input type="text" id="homeTeam" value="Arsenal">
         </div>
         <div class="input-group">
-          <label id="lblAwayTeam">Away Team</label>
-          <input type="text" id="awayTeam" placeholder="e.g. Away Team">
+          <label id="lblAwayTeam">Away Name</label>
+          <input type="text" id="awayTeam" value="Chelsea">
         </div>
       </div>
 
       <div class="grid-2">
         <div class="input-group">
           <label id="lblHomeAvg">Home Scored Avg</label>
-          <input type="number" id="homeAvg" step="0.01" value="1.82">
+          <input type="number" id="homeAvg" step="0.01" value="2.10">
         </div>
         <div class="input-group">
           <label id="lblHomeCon">Home Conceded Avg</label>
-          <input type="number" id="homeConceded" step="0.01" value="0.92">
+          <input type="number" id="homeConceded" step="0.01" value="0.85">
         </div>
       </div>
 
       <div class="grid-2">
         <div class="input-group">
           <label id="lblAwayAvg">Away Scored Avg</label>
-          <input type="number" id="awayAvg" step="0.01" value="1.34">
+          <input type="number" id="awayAvg" step="0.01" value="1.45">
         </div>
         <div class="input-group">
           <label id="lblAwayCon">Away Conceded Avg</label>
-          <input type="number" id="awayConceded" step="0.01" value="1.18">
+          <input type="number" id="awayConceded" step="0.01" value="1.30">
         </div>
       </div>
 
-      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Football →</button>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Combo Markets →</button>
     </div>
 
     <div id="dashboard">
       <div class="best-pick-card" id="bestPickCard">
         <div class="best-pick-badge" id="bestPickBadge">⚡ Passed Auto Filter</div>
-        <div class="best-pick-title" id="bestPickTitle">Home win or draw</div>
-        <div class="best-pick-desc" id="bestPickDesc">The model found a high-confidence market edge.</div>
-        <div class="best-pick-pct" id="bestPickPct">83%</div>
+        <div class="best-pick-title" id="bestPickTitle">ARSENAL & OVER 1.5</div>
+        <div class="best-pick-desc" id="bestPickDesc">High-probability combination edge found.</div>
+        <div class="best-pick-pct" id="bestPickPct">78%</div>
       </div>
 
       <div class="card">
-        <div class="card-title">Where the edge sits</div>
-        <div class="bar-wrapper">
-          <div class="bar-label"><span id="labelHomeProb">HOME WIN</span><span id="pctHome">56%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-lime" id="barHome" style="width: 56%;"></div></div>
-        </div>
-        <div class="bar-wrapper" id="drawWrapper">
-          <div class="bar-label"><span>DRAW</span><span id="pctDraw">27%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-blue" id="barDraw" style="width: 27%;"></div></div>
-        </div>
-        <div class="bar-wrapper">
-          <div class="bar-label"><span id="labelAwayProb">AWAY WIN</span><span id="pctAway">18%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-red" id="barAway" style="width: 18%;"></div></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title" id="scoreTitle">Expected Finish</div>
+        <div class="card-title">Expected Score Line</div>
         <div class="score-display">
-          <span id="scoreHome">1</span> - <span id="scoreAway">1</span>
+          <span id="scoreHome">2</span> - <span id="scoreAway">1</span>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Available Edges</div>
-        <div class="bar-wrapper">
-          <div class="bar-label"><span id="lblMkt1">OVER 1.5 GOALS</span><span id="valMkt1">75%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-lime" id="barMkt1" style="width: 75%;"></div></div>
-        </div>
-        <div class="bar-wrapper">
-          <div class="bar-label"><span id="lblMkt2">HOME WIN OR DRAW</span><span id="valMkt2">83%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-blue" id="barMkt2" style="width: 83%;"></div></div>
-        </div>
-        <div class="bar-wrapper">
-          <div class="bar-label"><span id="lblMkt3">BTTS : YES</span><span id="valMkt3">49%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-lime" id="barMkt3" style="width: 49%;"></div></div>
-        </div>
+        <div class="card-title">Combo Market Probabilities</div>
+        <div id="comboContainer"></div>
       </div>
     </div>
 
@@ -203,72 +172,18 @@
   <script>
     let currentSport = 'football';
 
-    const sportConfigs = {
-      football: {
-        header: 'Set Football Fixture', btn: 'Analyze Football →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home Avg Goals', l2: 'Home Allowed Goals', l3: 'Away Avg Goals', l4: 'Away Allowed Goals',
-        v1: 1.82, v2: 0.92, v3: 1.34, v4: 1.18
-      },
-      basketball: {
-        header: 'Set Basketball Fixture', btn: 'Analyze Basketball →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home PPG', l2: 'Home Opp PPG', l3: 'Away PPG', l4: 'Away Opp PPG',
-        v1: 108.5, v2: 102.1, v3: 104.0, v4: 106.8
-      },
-      ice_hockey: {
-        header: 'Set Hockey Fixture', btn: 'Analyze Ice Hockey →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home Goals/G', l2: 'Home Conceded/G', l3: 'Away Goals/G', l4: 'Away Conceded/G',
-        v1: 3.2, v2: 2.5, v3: 2.8, v4: 3.1
-      },
-      tennis: {
-        header: 'Set Tennis Match', btn: 'Analyze Tennis →',
-        p1: 'Player 1', p2: 'Player 2',
-        l1: 'P1 Hold %', l2: 'P1 Break %', l3: 'P2 Hold %', l4: 'P2 Break %',
-        v1: 82.0, v2: 21.0, v3: 78.0, v4: 19.0
-      },
-      table_tennis: {
-        header: 'Set Table Tennis Match', btn: 'Analyze Table Tennis →',
-        p1: 'Player 1', p2: 'Player 2',
-        l1: 'P1 Win Rate %', l2: 'P1 Avg Pts/Set', l3: 'P2 Win Rate %', l4: 'P2 Avg Pts/Set',
-        v1: 65.0, v2: 9.8, v3: 58.0, v4: 9.2
-      }
-    };
-
     function updateTierTag() {
       const val = document.getElementById('leagueTier').value;
       const tag = document.getElementById('tierTag');
-      if (val === 'lower') {
-        tag.innerText = '80% Auto Threshold';
-        tag.style.color = 'var(--accent-lime)';
-      } else {
-        tag.innerText = '75% Auto Threshold';
-        tag.style.color = 'var(--accent-blue)';
-      }
+      tag.innerText = val === 'lower' ? '80% Auto Threshold' : '75% Auto Threshold';
+      tag.style.color = val === 'lower' ? 'var(--accent-lime)' : 'var(--accent-blue)';
     }
 
     function selectSport(sport, btn) {
       currentSport = sport;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-
-      const cfg = sportConfigs[sport];
-      document.getElementById('cardHeader').innerText = cfg.header;
-      document.getElementById('analyzeBtn').innerText = cfg.btn;
-      document.getElementById('lblHomeTeam').innerText = cfg.p1;
-      document.getElementById('lblAwayTeam').innerText = cfg.p2;
-
-      document.getElementById('lblHomeAvg').innerText = cfg.l1;
-      document.getElementById('lblHomeCon').innerText = cfg.l2;
-      document.getElementById('lblAwayAvg').innerText = cfg.l3;
-      document.getElementById('lblAwayCon').innerText = cfg.l4;
-
-      document.getElementById('homeAvg').value = cfg.v1;
-      document.getElementById('homeConceded').value = cfg.v2;
-      document.getElementById('awayAvg').value = cfg.v3;
-      document.getElementById('awayConceded').value = cfg.v4;
-
+      document.getElementById('cardHeader').innerText = `Set ${sport.replace('_', ' ').toUpperCase()} Fixture`;
       document.getElementById('dashboard').style.display = 'none';
     }
 
@@ -290,11 +205,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          sport: currentSport, 
-          homeTeam, awayTeam, 
-          homeAvg, homeConceded, 
-          awayAvg, awayConceded,
-          leagueTier
+          sport: currentSport, homeTeam, awayTeam, 
+          homeAvg, homeConceded, awayAvg, awayConceded, leagueTier
         })
       });
 
@@ -315,37 +227,16 @@
       document.getElementById('bestPickDesc').innerText = data.bestPick.desc;
       document.getElementById('bestPickPct').innerText = data.bestPick.confidence + '%';
 
-      document.getElementById('labelHomeProb').innerText = `${homeTeam.toUpperCase()} WIN`;
-      document.getElementById('labelAwayProb').innerText = `${awayTeam.toUpperCase()} WIN`;
-
-      document.getElementById('pctHome').innerText = data.probabilities.home + '%';
-      document.getElementById('barHome').style.width = data.probabilities.home + '%';
-
-      if (data.probabilities.draw === 0) {
-        document.getElementById('drawWrapper').style.display = 'none';
-      } else {
-        document.getElementById('drawWrapper').style.display = 'block';
-        document.getElementById('pctDraw').innerText = data.probabilities.draw + '%';
-        document.getElementById('barDraw').style.width = data.probabilities.draw + '%';
-      }
-
-      document.getElementById('pctAway').innerText = data.probabilities.away + '%';
-      document.getElementById('barAway').style.width = data.probabilities.away + '%';
-
       document.getElementById('scoreHome').innerText = data.projection.homeGoals;
       document.getElementById('scoreAway').innerText = data.projection.awayGoals;
 
-      document.getElementById('lblMkt1').innerText = data.markets.label1;
-      document.getElementById('valMkt1').innerText = data.markets.val1 + '%';
-      document.getElementById('barMkt1').style.width = data.markets.val1 + '%';
-
-      document.getElementById('lblMkt2').innerText = data.markets.label2;
-      document.getElementById('valMkt2').innerText = data.markets.val2 + '%';
-      document.getElementById('barMkt2').style.width = data.markets.val2 + '%';
-
-      document.getElementById('lblMkt3').innerText = data.markets.label3;
-      document.getElementById('valMkt3').innerText = data.markets.val3 + '%';
-      document.getElementById('barMkt3').style.width = data.markets.val3 + '%';
+      const container = document.getElementById('comboContainer');
+      container.innerHTML = data.comboMarkets.map(item => `
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>${item.label}</span><span>${item.val}%</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width: ${item.val}%;"></div></div>
+        </div>
+      `).join('');
 
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
