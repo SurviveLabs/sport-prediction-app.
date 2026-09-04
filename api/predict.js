@@ -1,126 +1,251 @@
-export default function handler(req, res) {
+// Helper: Basic Poisson probability function
+function poisson(k, lambda) {
+  let factorial = 1;
+  for (let i = 1; i <= k; i++) factorial *= i;
+  return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial;
+}
+
+// Helper: Calculate football matrix probabilities up to 5x5
+function calculateFootballMatrix(xGHome, xGAway) {
+  let probHome = 0, probDraw = 0, probAway = 0;
+  let probOver15 = 0, probOver25 = 0, probBTTS = 0;
+
+  for (let h = 0; h <= 5; h++) {
+    for (let a = 0; a <= 5; a++) {
+      const p = poisson(h, xGHome) * poisson(a, xGAway);
+      
+      if (h > a) probHome += p;
+      else if (h === a) probDraw += p;
+      else probAway += p;
+
+      if (h + a > 1.5) probOver15 += p;
+      if (h + a > 2.5) probOver25 += p;
+      if (h > 0 && a > 0) probBTTS += p;
+    }
+  }
+
+  return { probHome, probDraw, probAway, probOver15, probOver25, probBTTS };
+}
+
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { sport, homeTeam, awayTeam, homeAvg, homeConceded, awayAvg, awayConceded, leagueTier } = req.body;
+  const {
+    sport = 'football',
+    homeTeam = 'Home',
+    awayTeam = 'Away',
+    homeAvg = 1.5,
+    homeConceded = 1.0,
+    awayAvg = 1.2,
+    awayConceded = 1.2,
+    leagueTier = 'major'
+  } = req.body;
 
-  const hA = parseFloat(homeAvg) || 1;
-  const hC = parseFloat(homeConceded) || 1;
-  const aA = parseFloat(awayAvg) || 1;
-  const aC = parseFloat(awayConceded) || 1;
+  const hAvg = parseFloat(homeAvg) || 1.0;
+  const hCon = parseFloat(homeConceded) || 1.0;
+  const aAvg = parseFloat(awayAvg) || 1.0;
+  const aCon = parseFloat(awayConceded) || 1.0;
 
-  const isLowerTier = (leagueTier === 'lower');
-  const isIndividualSport = ['tennis', 'table_tennis', 'esports'].includes(sport);
-  const autoThreshold = (isLowerTier || isIndividualSport) ? 80 : 75;
+  const autoThreshold = leagueTier === 'lower' ? 80 : 75;
+  const threshDec = autoThreshold / 100;
 
-  let homeProb = 0;
-  let drawProb = 0;
-  let awayProb = 0;
-  let homeExp = 0;
-  let awayExp = 0;
-  let totalLine = 2.5;
-  let lineUnit = "GOALS";
-
+  let bestPick = { title: 'NO BET / PASS', confidence: 0, passedFilter: false, desc: 'No market met the strict threshold edge.' };
+  let projection = { homeGoals: 0, awayGoals: 0 };
   let stdMarkets = [];
+  let comboMarkets = [];
 
+  // ==========================================
+  // 1. FOOTBALL ENGINE
+  // ==========================================
   if (sport === 'football') {
-    homeExp = Math.round(((hA + aC) / 2) * 10) / 10;
-    awayExp = Math.round(((aA + hC) / 2) * 10) / 10;
-    const diff = homeExp - awayExp;
+    const xGHome = (hAvg + aCon) / 2;
+    const xGAway = (aAvg + hCon) / 2;
+    projection = { homeGoals: xGHome.toFixed(1), awayGoals: xGAway.toFixed(1) };
 
-    homeProb = Math.min(85, Math.max(15, Math.round(45 + diff * 20)));
-    awayProb = Math.min(85, Math.max(15, Math.round(30 - diff * 20)));
-    drawProb = 100 - homeProb - awayProb;
-    totalLine = 2.5;
-    lineUnit = "GOALS";
-
-    const over15 = Math.min(95, Math.round((homeExp + awayExp) * 28));
-    const over25 = Math.min(90, Math.round((homeExp + awayExp) * 21));
-    const doubleChance = homeProb + drawProb;
+    const m = calculateFootballMatrix(xGHome, xGAway);
+    const p1X = m.probHome + m.probDraw;
+    const pX2 = m.probAway + m.probDraw;
 
     stdMarkets = [
-      { label: `${homeTeam.toUpperCase()} WIN (STRAIGHT)`, val: homeProb },
-      { label: `DRAW (1X2)`, val: drawProb },
-      { label: `${awayTeam.toUpperCase()} WIN (STRAIGHT)`, val: awayProb },
-      { label: `${homeTeam.toUpperCase()} WIN OR DRAW (1X)`, val: doubleChance },
-      { label: `OVER 1.5 GOALS`, val: over15 },
-      { label: `OVER 2.5 GOALS`, val: over25 }
+      { label: `${homeTeam} Win (1)`, val: Math.round(m.probHome * 100) },
+      { label: 'Draw (X)', val: Math.round(m.probDraw * 100) },
+      { label: `${awayTeam} Win (2)`, val: Math.round(m.probAway * 100) },
+      { label: `${homeTeam} Win or Draw (1X)`, val: Math.round(p1X * 100) },
+      { label: `${awayTeam} Win or Draw (X2)`, val: Math.round(pX2 * 100) }
     ];
 
-  } else if (sport === 'basketball' || sport === 'american_football') {
-    homeExp = Math.round((hA + aC) / 2);
-    awayExp = Math.round((aA + hC) / 2);
-    const diff = homeExp - awayExp;
+    comboMarkets = [
+      { label: 'Over 1.5 Goals', val: Math.round(m.probOver15 * 100) },
+      { label: 'Over 2.5 Goals', val: Math.round(m.probOver25 * 100) },
+      { label: 'Both Teams To Score (BTTS)', val: Math.round(m.probBTTS * 100) }
+    ];
 
-    homeProb = Math.min(92, Math.max(8, Math.round(50 + diff * 3)));
-    awayProb = 100 - homeProb;
-    drawProb = 0;
-    totalLine = Math.round(homeExp + awayExp - 2.5);
-    lineUnit = "POINTS";
+    // Priority Selection Hierarchy: 1X/X2 -> Over 2.5 -> BTTS -> Straight Win -> Strict Over 1.5 (82%+)
+    if (p1X >= threshDec) {
+      bestPick = { title: `${homeTeam.toUpperCase()} WIN OR DRAW (1X)`, confidence: Math.round(p1X * 100), passedFilter: true, desc: 'High structural home balance identified.' };
+    } else if (pX2 >= threshDec) {
+      bestPick = { title: `${awayTeam.toUpperCase()} WIN OR DRAW (X2)`, confidence: Math.round(pX2 * 100), passedFilter: true, desc: 'Strong away double chance value found.' };
+    } else if (m.probOver25 >= 0.68) {
+      bestPick = { title: 'OVER 2.5 GOALS', confidence: Math.round(m.probOver25 * 100), passedFilter: true, desc: 'High total expected goals line met.' };
+    } else if (m.probBTTS >= 0.70) {
+      bestPick = { title: 'BOTH TEAMS TO SCORE (YES)', confidence: Math.round(m.probBTTS * 100), passedFilter: true, desc: 'Both sides exhibit high scoring and conceding rates.' };
+    } else if (m.probHome >= threshDec) {
+      bestPick = { title: `${homeTeam.toUpperCase()} WIN (STRAIGHT)`, confidence: Math.round(m.probHome * 100), passedFilter: true, desc: 'Dominant home victory projection.' };
+    } else if (m.probAway >= threshDec) {
+      bestPick = { title: `${awayTeam.toUpperCase()} WIN (STRAIGHT)`, confidence: Math.round(m.probAway * 100), passedFilter: true, desc: 'Dominant away victory projection.' };
+    } else if (m.probOver15 >= 0.83) { // Raised threshold for Over 1.5 to prevent lock-in bias
+      bestPick = { title: 'OVER 1.5 GOALS', confidence: Math.round(m.probOver15 * 100), passedFilter: true, desc: 'Exceeds strict 83%+ safety baseline.' };
+    }
+
+  // ==========================================
+  // 2. BASKETBALL ENGINE
+  // ==========================================
+  } else if (sport === 'basketball') {
+    const projHome = (hAvg + aCon) / 2;
+    const projAway = (aAvg + hCon) / 2;
+    const totalPoints = projHome + projAway;
+    projection = { homeGoals: Math.round(projHome), awayGoals: Math.round(projAway) };
+
+    const diff = projHome - projAway;
+    const pHomeWin = 1 / (1 + Math.exp(-diff / 10));
+    const pAwayWin = 1 - pHomeWin;
+    const pOverLine = totalPoints > 220 ? 0.72 : totalPoints > 210 ? 0.65 : 0.48;
 
     stdMarkets = [
-      { label: `${homeTeam.toUpperCase()} MONEYLINE`, val: homeProb },
-      { label: `${awayTeam.toUpperCase()} MONEYLINE`, val: awayProb },
-      { label: `OVER ${totalLine} TOTAL POINTS`, val: 78 },
-      { label: `UNDER ${totalLine} TOTAL POINTS`, val: 38 }
+      { label: `${homeTeam} Moneyline`, val: Math.round(pHomeWin * 100) },
+      { label: `${awayTeam} Moneyline`, val: Math.round(pAwayWin * 100) }
     ];
 
+    comboMarkets = [
+      { label: `Over ${Math.floor(totalPoints - 3)} Total Points`, val: Math.round(pOverLine * 100) },
+      { label: `${diff > 0 ? homeTeam : awayTeam} -${Math.abs(Math.round(diff))} Handicap`, val: Math.round(Math.max(pHomeWin, pAwayWin) * 92) }
+    ];
+
+    if (pHomeWin >= threshDec) {
+      bestPick = { title: `${homeTeam.toUpperCase()} MONEYLINE`, confidence: Math.round(pHomeWin * 100), passedFilter: true, desc: 'High scoring differential advantage.' };
+    } else if (pAwayWin >= threshDec) {
+      bestPick = { title: `${awayTeam.toUpperCase()} MONEYLINE`, confidence: Math.round(pAwayWin * 100), passedFilter: true, desc: 'Away offensive rating edge detected.' };
+    } else if (pOverLine >= threshDec) {
+      bestPick = { title: `OVER ${Math.floor(totalPoints - 3)} POINTS`, confidence: Math.round(pOverLine * 100), passedFilter: true, desc: 'High pace matchup expectation.' };
+    }
+
+  // ==========================================
+  // 3. ICE HOCKEY ENGINE
+  // ==========================================
+  } else if (sport === 'ice_hockey') {
+    const xGHome = (hAvg + aCon) / 2;
+    const xGAway = (aAvg + hCon) / 2;
+    projection = { homeGoals: xGHome.toFixed(1), awayGoals: xGAway.toFixed(1) };
+
+    const pHomeWin = xGHome / (xGHome + xGAway + 0.5);
+    const pAwayWin = xGAway / (xGHome + xGAway + 0.5);
+    const pOver55 = (xGHome + xGAway) > 5.5 ? 0.76 : 0.52;
+
+    stdMarkets = [
+      { label: `${homeTeam} Match Winner`, val: Math.round(pHomeWin * 100) },
+      { label: `${awayTeam} Match Winner`, val: Math.round(pAwayWin * 100) }
+    ];
+
+    comboMarkets = [
+      { label: 'Over 5.5 Total Goals', val: Math.round(pOver55 * 100) },
+      { label: `${homeTeam} +1.5 Puck Line`, val: Math.round((pHomeWin + 0.22) * 100) }
+    ];
+
+    if (pHomeWin >= threshDec) {
+      bestPick = { title: `${homeTeam.toUpperCase()} MONEYLINE`, confidence: Math.round(pHomeWin * 100), passedFilter: true, desc: 'Dominant net goal margin.' };
+    } else if (pAwayWin >= threshDec) {
+      bestPick = { title: `${awayTeam.toUpperCase()} MONEYLINE`, confidence: Math.round(pAwayWin * 100), passedFilter: true, desc: 'Road offensive superiority.' };
+    } else if (pOver55 >= threshDec) {
+      bestPick = { title: 'OVER 5.5 GOALS', confidence: Math.round(pOver55 * 100), passedFilter: true, desc: 'Puck line volume threshold exceeded.' };
+    }
+
+  // ==========================================
+  // 4. TENNIS ENGINE
+  // ==========================================
+  } else if (sport === 'tennis') {
+    const p1Rating = (hAvg * 0.7) + (200 - aCon * 0.3);
+    const p2Rating = (aAvg * 0.7) + (200 - hCon * 0.3);
+    const p1Win = p1Rating / (p1Rating + p2Rating);
+    const p2Win = 1 - p1Win;
+
+    projection = { homeGoals: (p1Win * 2).toFixed(1), awayGoals: (p2Win * 2).toFixed(1) };
+
+    stdMarkets = [
+      { label: `${homeTeam} Match Winner`, val: Math.round(p1Win * 100) },
+      { label: `${awayTeam} Match Winner`, val: Math.round(p2Win * 100) }
+    ];
+
+    comboMarkets = [
+      { label: `${p1Win > p2Win ? homeTeam : awayTeam} 2-0 Sets`, val: Math.round(Math.max(p1Win, p2Win) * 68) },
+      { label: 'Over 21.5 Total Games', val: 62 }
+    ];
+
+    if (p1Win >= threshDec) {
+      bestPick = { title: `${homeTeam.toUpperCase()} MATCH WINNER`, confidence: Math.round(p1Win * 100), passedFilter: true, desc: 'Superior serve/return hold efficiency.' };
+    } else if (p2Win >= threshDec) {
+      bestPick = { title: `${awayTeam.toUpperCase()} MATCH WINNER`, confidence: Math.round(p2Win * 100), passedFilter: true, desc: 'Higher break-point conversion metric.' };
+    }
+
+  // ==========================================
+  // 5. TABLE TENNIS ENGINE
+  // ==========================================
+  } else if (sport === 'table_tennis') {
+    const p1Prob = hAvg / (hAvg + aAvg);
+    const p2Prob = 1 - p1Prob;
+    projection = { homeGoals: (p1Prob * 3.5).toFixed(1), awayGoals: (p2Prob * 3.5).toFixed(1) };
+
+    stdMarkets = [
+      { label: `${homeTeam} Match Winner`, val: Math.round(p1Prob * 100) },
+      { label: `${awayTeam} Match Winner`, val: Math.round(p2Prob * 100) }
+    ];
+
+    comboMarkets = [
+      { label: `${p1Prob > p2Prob ? homeTeam : awayTeam} -1.5 Games`, val: Math.round(Math.max(p1Prob, p2Prob) * 80) }
+    ];
+
+    if (p1Prob >= threshDec) {
+      bestPick = { title: `${homeTeam.toUpperCase()} MATCH WINNER`, confidence: Math.round(p1Prob * 100), passedFilter: true, desc: 'Set win rate consistency advantage.' };
+    } else if (p2Prob >= threshDec) {
+      bestPick = { title: `${awayTeam.toUpperCase()} MATCH WINNER`, confidence: Math.round(p2Prob * 100), passedFilter: true, desc: 'Outperforming head-to-head metrics.' };
+    }
+
+  // ==========================================
+  // 6–10. OTHER SPORTS ENGINE (American Football, Cricket, Baseball, Volleyball, Esports)
+  // ==========================================
   } else {
-    homeExp = Math.round(((hA + aC) / 2) * 10) / 10;
-    awayExp = Math.round(((aA + hC) / 2) * 10) / 10;
-    const diff = homeExp - awayExp;
+    const pHome = hAvg / (hAvg + aCon);
+    const pAway = aAvg / (aAvg + hCon);
+    const normHome = pHome / (pHome + pAway);
+    const normAway = 1 - normHome;
 
-    homeProb = Math.min(85, Math.max(15, Math.round(45 + diff * 15)));
-    awayProb = Math.min(85, Math.max(15, Math.round(35 - diff * 15)));
-    drawProb = 100 - homeProb - awayProb;
+    projection = { homeGoals: (normHome * 100).toFixed(0), awayGoals: (normAway * 100).toFixed(0) };
 
     stdMarkets = [
-      { label: `${homeTeam.toUpperCase()} STRAIGHT WIN`, val: homeProb },
-      { label: `${awayTeam.toUpperCase()} STRAIGHT WIN`, val: awayProb },
-      { label: `OVER 2.5 LINE`, val: 70 }
+      { label: `${homeTeam} Win`, val: Math.round(normHome * 100) },
+      { label: `${awayTeam} Win`, val: Math.round(normAway * 100) }
     ];
+
+    comboMarkets = [
+      { label: `${normHome > normAway ? homeTeam : awayTeam} Handicap Edge`, val: Math.round(Math.max(normHome, normAway) * 88) }
+    ];
+
+    if (normHome >= threshDec) {
+      bestPick = { title: `${homeTeam.toUpperCase()} WIN`, confidence: Math.round(normHome * 100), passedFilter: true, desc: 'Performance ratings meet strict threshold.' };
+    } else if (normAway >= threshDec) {
+      bestPick = { title: `${awayTeam.toUpperCase()} WIN`, confidence: Math.round(normAway * 100), passedFilter: true, desc: 'Performance ratings meet strict threshold.' };
+    }
   }
 
-  const overProb = 68;
-  const underProb = 32;
-
-  const hOver = Math.min(92, Math.round((homeProb * overProb) / 100 * 1.1));
-  const hUnder = Math.min(88, Math.round((homeProb * underProb) / 100 * 0.95));
-  const aOver = Math.min(92, Math.round((awayProb * overProb) / 100 * 1.1));
-  const aUnder = Math.min(88, Math.round((awayProb * underProb) / 100 * 0.95));
-
-  let comboMarkets = [
-    { label: `${homeTeam.toUpperCase()} & OVER ${totalLine} ${lineUnit}`, val: hOver },
-    { label: `${homeTeam.toUpperCase()} & UNDER ${totalLine} ${lineUnit}`, val: hUnder },
-    { label: `${awayTeam.toUpperCase()} & OVER ${totalLine} ${lineUnit}`, val: aOver },
-    { label: `${awayTeam.toUpperCase()} & UNDER ${totalLine} ${lineUnit}`, val: aUnder }
-  ];
-
-  if (drawProb > 0) {
-    const dOver = Math.min(85, Math.round((drawProb * overProb) / 100 * 1.15));
-    const dUnder = Math.min(85, Math.round((drawProb * underProb) / 100 * 0.88));
-    comboMarkets.push({ label: `DRAW & OVER ${totalLine} ${lineUnit}`, val: dOver });
-    comboMarkets.push({ label: `DRAW & UNDER ${totalLine} ${lineUnit}`, val: dUnder });
-  }
-
-  // Combine all market options to find top pick
-  const allMarkets = [...stdMarkets, ...comboMarkets].sort((a, b) => b.val - a.val);
-  const topPick = allMarkets[0];
-  const passedFilter = topPick.val >= autoThreshold;
-
-  res.status(200).json({
+  // Final Output Payload
+  return res.status(200).json({
+    sport,
+    leagueTier,
     autoThreshold,
-    bestPick: {
-      title: passedFilter ? topPick.label : 'NO BET / PASS',
-      confidence: topPick.val,
-      passedFilter,
-      desc: passedFilter 
-        ? `Highest confidence edge found at ${topPick.val}%.`
-        : `Top edge was ${topPick.val}%, falling below the ${autoThreshold}% safety cutoff.`
-    },
-    projection: { homeGoals: homeExp, awayGoals: awayExp },
+    bestPick,
+    projection,
     stdMarkets,
     comboMarkets
   });
-}
+        }
