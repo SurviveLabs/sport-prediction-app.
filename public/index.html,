@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sport Prediction Engine</title>
+  <style>
+    :root[data-theme="dark"] {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --border-color: #334155;
+      --accent: #38bdf8;
+    }
+    :root[data-theme="light"] {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-color: #0f172a;
+      --border-color: #e2e8f0;
+      --accent: #0284c7;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .toggle-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-color);
+      color: var(--text-color);
+      box-sizing: border-box;
+    }
+    button.submit-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Predictor AI</h2>
+      <button class="toggle-btn" id="themeToggle">☀️ / 🌙 Mode</button>
+    </div>
+
+    <div class="card">
+      <div class="form-group">
+        <label>Home Team</label>
+        <input type="text" id="homeTeam" placeholder="e.g. Arsenal">
+      </div>
+      <div class="form-group">
+        <label>Home Avg Goals</label>
+        <input type="number" id="homeAvg" step="0.1" value="1.8">
+      </div>
+      <div class="form-group">
+        <label>Away Team</label>
+        <input type="text" id="awayTeam" placeholder="e.g. Chelsea">
+      </div>
+      <div class="form-group">
+        <label>Away Avg Goals</label>
+        <input type="number" id="awayAvg" step="0.1" value="1.2">
+      </div>
+      <button class="submit-btn" onclick="getPrediction()">Analyze Match</button>
+
+      <div class="result" id="resultBlock" style="display:none;">
+        <h3 id="matchTitle"></h3>
+        <p>Expected Home Goals: <strong id="expHome"></strong></p>
+        <p>Expected Away Goals: <strong id="expAway"></strong></p>
+        <p>Recommended Tip: <strong id="tip" style="color: var(--accent);"></strong></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Theme Toggle Logic
+    const toggleBtn = document.getElementById('themeToggle');
+    toggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+    });
+
+    // Prediction Logic
+    async function getPrediction() {
+      const homeTeam = document.getElementById('homeTeam').value || 'Home';
+      const awayTeam = document.getElementById('awayTeam').value || 'Away';
+      const homeAvg = document.getElementById('homeAvg').value;
+      const awayAvg = document.getElementById('awayAvg').value;
+
+      const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ homeTeam, awayTeam, homeAvg, awayAvg })
+      });
+
+      const data = await res.json();
+      
+      document.getElementById('matchTitle').innerText = data.match;
+      document.getElementById('expHome').innerText = data.predictions.expectedGoalsHome;
+      document.getElementById('expAway').innerText = data.predictions.expectedGoalsAway;
+      document.getElementById('tip').innerText = data.predictions.recommendedTip;
+      document.getElementById('resultBlock').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
+
