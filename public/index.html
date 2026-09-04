@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MATCHDAY | Combo Markets Engine</title>
+  <title>MATCHDAY | All Sports Combo Engine</title>
   <style>
     :root[data-theme="dark"] {
       --bg-color: #0b0f17;
@@ -48,7 +48,8 @@
     .hero-title { font-size: 2rem; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
     .hero-sub { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px; line-height: 1.4; }
 
-    .sport-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 20px; }
+    .sport-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 20px; -webkit-overflow-scrolling: touch; }
+    .sport-tabs::-webkit-scrollbar { display: none; }
     .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
     .tab-btn.active { background: var(--accent-lime); color: var(--accent-dark); font-weight: 600; border-color: var(--accent-lime); }
 
@@ -67,7 +68,7 @@
     .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; transition: all 0.3s; }
     .best-pick-card.no-bet { background: #334155; color: #f8fafc; border: 1px solid #475569; }
     .best-pick-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.9; }
-    .best-pick-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; padding-right: 60px; }
+    .best-pick-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; padding-right: 60px; word-break: break-word; }
     .best-pick-desc { font-size: 0.8rem; opacity: 0.9; }
     .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 1.8rem; font-weight: 900; }
 
@@ -84,19 +85,25 @@
 
   <div class="container">
     <div class="top-bar">
-      <div class="brand">MATCHDAY <span>/ COMBO MARKETS</span></div>
+      <div class="brand">MATCHDAY <span>/ ALL SPORTS ENGINE</span></div>
       <button class="theme-toggle" id="themeBtn">☀️ / 🌙</button>
     </div>
 
     <h1 class="hero-title">Read the game<br>before it happens.</h1>
-    <p class="hero-sub">Enter stats to generate combo markets: Home/Away/Draw + Over/Under targets.</p>
+    <p class="hero-sub">Select your sport below to dynamically update form metrics and view calculated combo probabilities.</p>
 
+    <!-- Full 10 Sport Navigation Bar -->
     <div class="sport-tabs">
       <button class="tab-btn active" onclick="selectSport('football', this)">Football</button>
       <button class="tab-btn" onclick="selectSport('basketball', this)">Basketball</button>
       <button class="tab-btn" onclick="selectSport('ice_hockey', this)">Ice Hockey</button>
       <button class="tab-btn" onclick="selectSport('tennis', this)">Tennis</button>
       <button class="tab-btn" onclick="selectSport('table_tennis', this)">Table Tennis</button>
+      <button class="tab-btn" onclick="selectSport('american_football', this)">American Football</button>
+      <button class="tab-btn" onclick="selectSport('cricket', this)">Cricket</button>
+      <button class="tab-btn" onclick="selectSport('baseball', this)">Baseball</button>
+      <button class="tab-btn" onclick="selectSport('volleyball', this)">Volleyball</button>
+      <button class="tab-btn" onclick="selectSport('esports', this)">Esports</button>
     </div>
 
     <div class="card">
@@ -143,7 +150,7 @@
         </div>
       </div>
 
-      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Combo Markets →</button>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Football →</button>
     </div>
 
     <div id="dashboard">
@@ -155,7 +162,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title">Expected Score Line</div>
+        <div class="card-title" id="scoreTitle">Expected Projection</div>
         <div class="score-display">
           <span id="scoreHome">2</span> - <span id="scoreAway">1</span>
         </div>
@@ -172,6 +179,69 @@
   <script>
     let currentSport = 'football';
 
+    const sportConfigs = {
+      football: {
+        header: 'Set Football Fixture', btn: 'Analyze Football →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Scored Avg', l2: 'Home Conceded Avg', l3: 'Away Scored Avg', l4: 'Away Conceded Avg',
+        d1: '2.10', d2: '0.85', d3: '1.45', d4: '1.30', t1: 'Arsenal', t2: 'Chelsea'
+      },
+      basketball: {
+        header: 'Set Basketball Fixture', btn: 'Analyze Basketball →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home PPG', l2: 'Home Opp PPG', l3: 'Away PPG', l4: 'Away Opp PPG',
+        d1: '118.5', d2: '108.2', d3: '112.4', d4: '114.0', t1: 'Boston Celtics', t2: 'LA Lakers'
+      },
+      ice_hockey: {
+        header: 'Set Hockey Fixture', btn: 'Analyze Ice Hockey →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Goals/G', l2: 'Home Conceded/G', l3: 'Away Goals/G', l4: 'Away Conceded/G',
+        d1: '3.40', d2: '2.40', d3: '2.90', d4: '3.10', t1: 'Florida Panthers', t2: 'NY Rangers'
+      },
+      tennis: {
+        header: 'Set Tennis Match', btn: 'Analyze Tennis →',
+        p1: 'Player 1', p2: 'Player 2',
+        l1: 'P1 Hold %', l2: 'P1 Break %', l3: 'P2 Hold %', l4: 'P2 Break %',
+        d1: '88.0', d2: '26.0', d3: '82.0', d4: '22.0', t1: 'Jannik Sinner', t2: 'Carlos Alcaraz'
+      },
+      table_tennis: {
+        header: 'Set Table Tennis Match', btn: 'Analyze Table Tennis →',
+        p1: 'Player 1', p2: 'Player 2',
+        l1: 'P1 Win Rate %', l2: 'P1 Avg Pts/Set', l3: 'P2 Win Rate %', l4: 'P2 Avg Pts/Set',
+        d1: '75.0', d2: '10.2', d3: '62.0', d4: '9.4', t1: 'Fan Zhendong', t2: 'Ma Long'
+      },
+      american_football: {
+        header: 'Set NFL Fixture', btn: 'Analyze American Football →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Off PPG', l2: 'Home Def Allowed', l3: 'Away Off PPG', l4: 'Away Def Allowed',
+        d1: '27.5', d2: '18.2', d3: '21.4', d4: '24.0', t1: 'Kansas City Chiefs', t2: 'SF 49ers'
+      },
+      cricket: {
+        header: 'Set Cricket Match', btn: 'Analyze Cricket →',
+        p1: 'Team 1', p2: 'Team 2',
+        l1: 'T1 Innings Runs', l2: 'T1 Econ Rating', l3: 'T2 Innings Runs', l4: 'T2 Econ Rating',
+        d1: '175.0', d2: '7.5', d3: '162.0', d4: '8.2', t1: 'India', t2: 'Australia'
+      },
+      baseball: {
+        header: 'Set MLB Game', btn: 'Analyze Baseball →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Runs/Game', l2: 'Home ERA Conceded', l3: 'Away Runs/Game', l4: 'Away ERA Conceded',
+        d1: '5.20', d2: '3.80', d3: '4.10', d4: '4.60', t1: 'LA Dodgers', t2: 'NY Yankees'
+      },
+      volleyball: {
+        header: 'Set Volleyball Match', btn: 'Analyze Volleyball →',
+        p1: 'Team 1', p2: 'Team 2',
+        l1: 'T1 Set Win %', l2: 'T1 Pts/Set Avg', l3: 'T2 Set Win %', l4: 'T2 Pts/Set Avg',
+        d1: '68.0', d2: '24.5', d3: '52.0', d4: '21.8', t1: 'Poland', t2: 'Italy'
+      },
+      esports: {
+        header: 'Set Esports Match', btn: 'Analyze Esports →',
+        p1: 'Team 1', p2: 'Team 2',
+        l1: 'T1 Map Win %', l2: 'T1 Round Win %', l3: 'T2 Map Win %', l4: 'T2 Round Win %',
+        d1: '65.0', d2: '54.5', d3: '48.0', d4: '47.2', t1: 'FaZe Clan', t2: 'Natus Vincere'
+      }
+    };
+
     function updateTierTag() {
       const val = document.getElementById('leagueTier').value;
       const tag = document.getElementById('tierTag');
@@ -183,7 +253,26 @@
       currentSport = sport;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('cardHeader').innerText = `Set ${sport.replace('_', ' ').toUpperCase()} Fixture`;
+
+      const cfg = sportConfigs[sport];
+      document.getElementById('cardHeader').innerText = cfg.header;
+      document.getElementById('analyzeBtn').innerText = cfg.btn;
+
+      document.getElementById('lblHomeTeam').innerText = cfg.p1;
+      document.getElementById('lblAwayTeam').innerText = cfg.p2;
+      document.getElementById('homeTeam').value = cfg.t1;
+      document.getElementById('awayTeam').value = cfg.t2;
+
+      document.getElementById('lblHomeAvg').innerText = cfg.l1;
+      document.getElementById('lblHomeCon').innerText = cfg.l2;
+      document.getElementById('lblAwayAvg').innerText = cfg.l3;
+      document.getElementById('lblAwayCon').innerText = cfg.l4;
+
+      document.getElementById('homeAvg').value = cfg.d1;
+      document.getElementById('homeConceded').value = cfg.d2;
+      document.getElementById('awayAvg').value = cfg.d3;
+      document.getElementById('awayConceded').value = cfg.d4;
+
       document.getElementById('dashboard').style.display = 'none';
     }
 
