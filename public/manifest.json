@@ -1,0 +1,22 @@
+{
+  "short_name": "MATCHDAY",
+  "name": "MATCHDAY | Sports Analysis Engine",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192.png?text=MATCHDAY",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://via.placeholder.com/512.png?text=MATCHDAY",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b0f17",
+  "theme_color": "#ccff00",
+  "display": "standalone",
+  "orientation": "portrait"
+}
+
