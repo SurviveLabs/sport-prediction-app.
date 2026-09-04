@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MATCHDAY | Full Market Engine</title>
 
-  <!-- PWA Settings -->
-  <link rel="manifest" href="data:application/manifest+json;choice=pwa,base64,ewogICJzaG9ydF9uYW1lIjogIk1BVENIREFZIiwKICAibmFtZSI6ICJNQVRDSERBWSBTcG9ydHMgRW5naW5lIiwKICAiaWQiOiAiLyIsCiAgInN0YXJ0X3VybCI6ICIvIiwKICAic2NvcGUiOiAiLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgIm9yaWVudGF0aW9uIjogInBvcnRyYWl0IiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGIwZjE3IiwKICAidGhlbWVfY29sb3IiOiAiI2NjZmYwMCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImh0dHBzOi8vaW1nLmljb25zOC5jb20vY29sb3IvNTEyL2Zvb3RiYWxsLnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2NvbG9yLzE5Mi9mb290YmFsbC5wbmciLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIsCiAgICAgICJwdXJwb3NlIjogImFueSIKICAgIH0KICBdCn0=">
+  <!-- PWA Manifest & Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ccff00">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -351,16 +351,13 @@
       document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Inline Service Worker for PWA Installation Support
+    // Register Static Service Worker
     if ('serviceWorker' in navigator) {
-      const swCode = `
-        self.addEventListener('install', e => self.skipWaiting());
-        self.addEventListener('activate', e => self.clients.claim());
-        self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
-      `;
-      const blob = new Blob([swCode], { type: 'text/javascript' });
-      const blobUrl = URL.createObjectURL(blob);
-      navigator.serviceWorker.register(blobUrl, { scope: '/' }).catch(() => {});
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .then(reg => console.log('SW Registered Successfully'))
+          .catch(err => console.error('SW Registration Failed', err));
+      });
     }
   </script>
 </body>
