@@ -6,7 +6,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('Multi-Sport Prediction API is live.');
+  res.send('Multi-Sport Prediction API is running.');
 });
 
 app.post('/api/predict', (req, res) => {
@@ -34,14 +34,14 @@ app.post('/api/predict', (req, res) => {
       bestPick = {
         title: totalPoints > 210 ? "Over 210.5 Total Points" : `${homeWinProb > awayWinProb ? homeTeam : awayTeam} Moneyline`,
         desc: "Basketball pace and offensive efficiency rating edge.",
-        confidence: Math.max(homeWinProb, awayWinProb, 72)
+        confidence: Math.max(homeWinProb, awayWinProb, 74)
       };
       probabilities = { home: homeWinProb, draw: 0, away: awayWinProb };
       projection = { homeGoals: expHomePts, awayGoals: expAwayPts };
       markets = {
-        over15: Math.min(92, Math.round((totalPoints / 220) * 80)),
-        homeOrDraw: homeWinProb,
-        btts: awayWinProb
+        label1: "OVER 210.5 TOTAL POINTS", val1: Math.min(92, Math.round((totalPoints / 220) * 80)),
+        label2: `${homeTeam.toUpperCase()} MONEYLINE`, val2: homeWinProb,
+        label3: `${awayTeam.toUpperCase()} MONEYLINE`, val3: awayWinProb
       };
       break;
     }
@@ -63,38 +63,34 @@ app.post('/api/predict', (req, res) => {
       probabilities = { home: homeProb, draw: drawProb, away: awayProb };
       projection = { homeGoals: Math.round(expHomeGoals), awayGoals: Math.round(expAwayGoals) };
       markets = {
-        over15: Math.round(Math.min(90, totalGoals * 14)),
-        homeOrDraw: homeProb + drawProb,
-        btts: Math.round(Math.min(85, expHomeGoals * expAwayGoals * 25))
+        label1: "OVER 5.5 MATCH GOALS", val1: Math.round(Math.min(90, totalGoals * 14)),
+        label2: `${homeTeam.toUpperCase()} PUCKLINE (+1.5)`, val2: homeProb + drawProb,
+        label3: "BOTH TEAMS TO SCORE 2+", val3: Math.round(Math.min(85, expHomeGoals * expAwayGoals * 25))
       };
       break;
     }
 
     case 'tennis': {
-      const p1Hold = hScored;
-      const p2Hold = aScored;
-      const p1Prob = Math.min(90, Math.max(10, Math.round(((p1Hold + hCon) / (p1Hold + hCon + p2Hold + aCon)) * 100)));
+      const p1Prob = Math.min(90, Math.max(10, Math.round(((hScored + hCon) / (hScored + hCon + aScored + aCon)) * 100)));
       const p2Prob = 100 - p1Prob;
 
       bestPick = {
-        title: p1Prob > p2Prob ? `${homeTeam} Set 1 Win` : `${awayTeam} Set 1 Win`,
+        title: p1Prob > p2Prob ? `${homeTeam} to Win Match` : `${awayTeam} to Win Match`,
         desc: "Service hold % vs opponent break service rate ratio.",
         confidence: Math.max(p1Prob, p2Prob)
       };
       probabilities = { home: p1Prob, draw: 0, away: p2Prob };
       projection = { homeGoals: p1Prob > p2Prob ? 2 : 0, awayGoals: p2Prob > p1Prob ? 2 : 0 };
       markets = {
-        over15: 78, // Over 21.5 Games
-        homeOrDraw: p1Prob,
-        btts: 65  // Both players to win a set
+        label1: "OVER 21.5 MATCH GAMES", val1: 78,
+        label2: `${homeTeam.toUpperCase()} SET 1 WIN`, val2: p1Prob,
+        label3: "BOTH PLAYERS WIN A SET", val3: 62
       };
       break;
     }
 
     case 'table_tennis': {
-      const p1WinRate = hScored;
-      const p2WinRate = aScored;
-      const p1Prob = Math.min(88, Math.max(12, Math.round((p1WinRate / (p1WinRate + p2WinRate)) * 100)));
+      const p1Prob = Math.min(88, Math.max(12, Math.round((hScored / (hScored + aScored)) * 100)));
       const p2Prob = 100 - p1Prob;
 
       bestPick = {
@@ -105,9 +101,9 @@ app.post('/api/predict', (req, res) => {
       probabilities = { home: p1Prob, draw: 0, away: p2Prob };
       projection = { homeGoals: p1Prob > p2Prob ? 3 : 1, awayGoals: p2Prob > p1Prob ? 3 : 1 };
       markets = {
-        over15: 82, // Over 3.5 Sets
-        homeOrDraw: p1Prob,
-        btts: 55
+        label1: "OVER 3.5 SETS", val1: 82,
+        label2: `${homeTeam.toUpperCase()} MATCH WIN`, val2: p1Prob,
+        label3: `${awayTeam.toUpperCase()} MATCH WIN`, val3: p2Prob
       };
       break;
     }
@@ -130,9 +126,9 @@ app.post('/api/predict', (req, res) => {
       probabilities = { home: homeProb, draw: drawProb, away: awayProb };
       projection = { homeGoals: Math.round(expHome), awayGoals: Math.round(expAway) };
       markets = {
-        over15: Math.round(Math.min(95, total * 25)),
-        homeOrDraw: homeProb + drawProb,
-        btts: Math.round(Math.min(90, expHome * expAway * 30))
+        label1: "OVER 1.5 GOALS", val1: Math.round(Math.min(95, total * 25)),
+        label2: `${homeTeam.toUpperCase()} WIN OR DRAW`, val2: homeProb + drawProb,
+        label3: "BTTS : YES", val3: Math.round(Math.min(90, expHome * expAway * 30))
       };
       break;
     }
@@ -149,4 +145,3 @@ app.post('/api/predict', (req, res) => {
 });
 
 module.exports = app;
-      
