@@ -14,6 +14,8 @@
       --border-color: #1e293b;
       --accent-lime: #ccff00;
       --accent-dark: #0f172a;
+      --accent-blue: #38bdf8;
+      --accent-red: #f87171;
     }
     :root[data-theme="light"] {
       --bg-color: #f8fafc;
@@ -22,8 +24,10 @@
       --text-color: #0f172a;
       --text-dim: #64748b;
       --border-color: #e2e8f0;
-      --accent-lime: #a3e635;
+      --accent-lime: #84cc16;
       --accent-dark: #0f172a;
+      --accent-blue: #0284c7;
+      --accent-red: #ef4444;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,95 +40,51 @@
     }
     .container { max-width: 480px; margin: 0 auto; }
 
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .brand { font-weight: 800; font-size: 0.9rem; letter-spacing: 1px; }
     .brand span { font-weight: 400; color: var(--text-dim); }
-    .theme-toggle {
-      background: none;
-      border: 1px solid var(--border-color);
-      color: var(--text-color);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
+    .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
 
     .hero-title { font-size: 2rem; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
     .hero-sub { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px; line-height: 1.4; }
 
-    .sport-tabs {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 12px;
-      margin-bottom: 20px;
-    }
-    .tab-btn {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      color: var(--text-dim);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      white-space: nowrap;
-      cursor: pointer;
-    }
-    .tab-btn.active {
-      background: var(--accent-lime);
-      color: var(--accent-dark);
-      font-weight: 600;
-      border-color: var(--accent-lime);
-    }
+    .sport-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 20px; }
+    .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; }
+    .tab-btn.active { background: var(--accent-lime); color: var(--accent-dark); font-weight: 600; border-color: var(--accent-lime); }
 
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 24px;
-    }
+    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
     .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
 
     .input-group { margin-bottom: 14px; }
     .input-group label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .input-group input, .input-group select {
-      width: 100%;
-      padding: 12px;
-      background: var(--input-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      color: var(--text-color);
-      font-size: 0.9rem;
-    }
+    .input-group input, .input-group select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 0.9rem; }
 
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    .analyze-btn {
-      width: 100%;
-      padding: 14px;
-      background: var(--accent-lime);
-      color: var(--accent-dark);
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+    .analyze-btn { width: 100%; padding: 14px; background: var(--accent-lime); color: var(--accent-dark); border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
 
-    .result-card {
-      display: none;
-      background: var(--input-bg);
-      border-left: 4px solid var(--accent-lime);
-      padding: 16px;
-      border-radius: 8px;
-      margin-top: 16px;
-    }
+    /* Results Dashboard Cards */
+    #dashboard { display: none; }
+    .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; }
+    .best-pick-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.8; }
+    .best-pick-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+    .best-pick-desc { font-size: 0.8rem; opacity: 0.9; margin-bottom: 12px; }
+    .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 2.2rem; font-weight: 900; }
+
+    .bar-wrapper { margin-bottom: 10px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-dim); }
+    .bar-track { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .fill-lime { background: var(--accent-lime); }
+    .fill-blue { background: var(--accent-blue); }
+    .fill-red { background: var(--accent-red); }
+
+    .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 12px 0; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+    .badge-win { background: #22c55e; color: #fff; }
+    .badge-draw { background: #eab308; color: #fff; }
+    .badge-loss { background: #ef4444; color: #fff; }
+    .sequence-row { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -147,96 +107,126 @@
       <button class="tab-btn" onclick="selectSport('table_tennis', this)">Table Tennis</button>
     </div>
 
+    <!-- Input Card -->
     <div class="card">
       <div class="card-title" id="cardHeader">Set Football Fixture</div>
 
       <div class="input-group">
-        <label>Match Tier</label>
-        <select id="matchTier">
-          <option>Major Division - Tier 1/2</option>
-          <option>Lower Division - Tier 3+</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label id="lblHomeTeam">Home Team / Player 1</label>
+        <label>Home Team</label>
         <input type="text" id="homeTeam" placeholder="e.g. Home">
       </div>
 
       <div class="input-group">
-        <label id="lblAwayTeam">Away Team / Player 2</label>
+        <label>Away Team</label>
         <input type="text" id="awayTeam" placeholder="e.g. Away">
       </div>
 
       <div class="grid-2">
         <div class="input-group">
           <label id="lblHomeAvg">Home Scored Avg</label>
-          <input type="number" id="homeAvg" step="0.1" value="1.82">
+          <input type="number" id="homeAvg" step="0.01" value="1.82">
         </div>
         <div class="input-group">
           <label id="lblHomeCon">Home Conceded Avg</label>
-          <input type="number" id="homeConceded" step="0.1" value="0.92">
+          <input type="number" id="homeConceded" step="0.01" value="0.92">
         </div>
       </div>
 
       <div class="grid-2">
         <div class="input-group">
           <label id="lblAwayAvg">Away Scored Avg</label>
-          <input type="number" id="awayAvg" step="0.1" value="1.34">
+          <input type="number" id="awayAvg" step="0.01" value="1.34">
         </div>
         <div class="input-group">
           <label id="lblAwayCon">Away Conceded Avg</label>
-          <input type="number" id="awayConceded" step="0.1" value="1.18">
+          <input type="number" id="awayConceded" step="0.01" value="1.18">
         </div>
       </div>
 
       <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Football →</button>
+    </div>
 
-      <div class="result-card" id="resultCard">
-        <h3 id="resTitle" style="margin-bottom: 8px;"></h3>
-        <p>Projected Score / Metric: <strong id="resTotal"></strong></p>
-        <p style="margin-top: 4px;">Recommended Pick: <strong id="resTip" style="color: var(--accent-lime);"></strong></p>
+    <!-- Results Dashboard -->
+    <div id="dashboard">
+      <!-- Best Pick Banner -->
+      <div class="best-pick-card">
+        <div class="best-pick-badge">⚡ Best Pick / Model Read</div>
+        <div class="best-pick-title" id="bestPickTitle">Home win or draw</div>
+        <div class="best-pick-desc" id="bestPickDesc">The model found a market above the threshold.</div>
+        <div class="best-pick-pct" id="bestPickPct">83%</div>
+      </div>
+
+      <!-- Outcome Edge -->
+      <div class="card">
+        <div class="card-title">Where the edge sits</div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>HOME WIN</span><span id="pctHome">56%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barHome" style="width: 56%;"></div></div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>DRAW</span><span id="pctDraw">27%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-blue" id="barDraw" style="width: 27%;"></div></div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>AWAY WIN</span><span id="pctAway">18%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-red" id="barAway" style="width: 18%;"></div></div>
+        </div>
+      </div>
+
+      <!-- Score Projection & Form -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Expected finish</div>
+          <div class="score-display">
+            <span id="scoreHome">1</span> - <span id="scoreAway">1</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-dim); text-align: center;" id="expRange">0.9-2.5 to 0.1-1.7</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent sequence</div>
+          <div class="sequence-row">
+            <span class="badge badge-win">W</span>
+            <span class="badge badge-draw">D</span>
+            <span class="badge badge-loss">L</span>
+            <span class="badge badge-win">W</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Market Board -->
+      <div class="card">
+        <div class="card-title">Available edges</div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>OVER 1.5 GOALS</span><span id="mktOver15">75%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barOver15" style="width: 75%;"></div></div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>HOME WIN OR DRAW</span><span id="mkt1X">83%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-blue" id="bar1X" style="width: 83%;"></div></div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>BTTS : YES</span><span id="mktBtts">49%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barBtts" style="width: 49%;"></div></div>
+        </div>
       </div>
     </div>
+
   </div>
 
   <script>
     let currentSport = 'football';
 
-    const sportDefaults = {
-      football: { header: 'Set Football Fixture', btn: 'Analyze Football →', scored: 'Home Avg Goals', con: 'Home Allowed Goals', awayScored: 'Away Avg Goals', awayCon: 'Away Allowed Goals', val1: 1.82, val2: 0.92, val3: 1.34, val4: 1.18 },
-      basketball: { header: 'Set Basketball Fixture', btn: 'Analyze Basketball →', scored: 'Home PPG', con: 'Home Opp PPG', awayScored: 'Away PPG', awayCon: 'Away Opp PPG', val1: 108.5, val2: 102.1, val3: 104.0, val4: 106.8 },
-      ice_hockey: { header: 'Set Hockey Fixture', btn: 'Analyze Ice Hockey →', scored: 'Home Goals/G', con: 'Home Conceded/G', awayScored: 'Away Goals/G', awayCon: 'Away Conceded/G', val1: 3.2, val2: 2.5, val3: 2.8, val4: 3.1 },
-      tennis: { header: 'Set Tennis Match', btn: 'Analyze Tennis →', scored: 'P1 Hold % (0-100)', con: 'P1 Break % (0-100)', awayScored: 'P2 Hold % (0-100)', awayCon: 'P2 Break % (0-100)', val1: 82.0, val2: 21.0, val3: 78.0, val4: 19.0 },
-      table_tennis: { header: 'Set Table Tennis Match', btn: 'Analyze Table Tennis →', scored: 'P1 Win Rate %', con: 'P1 Avg Pts/Set', awayScored: 'P2 Win Rate %', awayCon: 'P2 Avg Pts/Set', val1: 65.0, val2: 9.8, val3: 58.0, val4: 9.2 }
-    };
-
     function selectSport(sport, btn) {
       currentSport = sport;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-
-      const config = sportDefaults[sport];
-      document.getElementById('cardHeader').innerText = config.header;
-      document.getElementById('analyzeBtn').innerText = config.btn;
-
-      document.getElementById('lblHomeAvg').innerText = config.scored;
-      document.getElementById('lblHomeCon').innerText = config.con;
-      document.getElementById('lblAwayAvg').innerText = config.awayScored;
-      document.getElementById('lblAwayCon').innerText = config.awayCon;
-
-      document.getElementById('homeAvg').value = config.val1;
-      document.getElementById('homeConceded').value = config.val2;
-      document.getElementById('awayAvg').value = config.val3;
-      document.getElementById('awayConceded').value = config.val4;
-
-      document.getElementById('resultCard').style.display = 'none';
+      document.getElementById('cardHeader').innerText = `Set ${sport.replace('_', ' ')} Fixture`;
+      document.getElementById('analyzeBtn').innerText = `Analyze ${sport.replace('_', ' ')} →`;
     }
 
     document.getElementById('themeBtn').addEventListener('click', () => {
       const html = document.documentElement;
-      const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', nextTheme);
+      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     });
 
     async function runAnalysis() {
@@ -254,10 +244,34 @@
       });
 
       const data = await res.json();
-      document.getElementById('resTitle').innerText = data.match;
-      document.getElementById('resTotal').innerText = data.predictions.projectedMetric;
-      document.getElementById('resTip').innerText = data.predictions.recommendedTip;
-      document.getElementById('resultCard').style.display = 'block';
+
+      // Populate Best Pick
+      document.getElementById('bestPickTitle').innerText = data.bestPick.title;
+      document.getElementById('bestPickDesc').innerText = data.bestPick.desc;
+      document.getElementById('bestPickPct').innerText = data.bestPick.confidence + '%';
+
+      // Populate Outcome Edges
+      document.getElementById('pctHome').innerText = data.probabilities.home + '%';
+      document.getElementById('barHome').style.width = data.probabilities.home + '%';
+      document.getElementById('pctDraw').innerText = data.probabilities.draw + '%';
+      document.getElementById('barDraw').style.width = data.probabilities.draw + '%';
+      document.getElementById('pctAway').innerText = data.probabilities.away + '%';
+      document.getElementById('barAway').style.width = data.probabilities.away + '%';
+
+      // Score Projection
+      document.getElementById('scoreHome').innerText = data.projection.homeGoals;
+      document.getElementById('scoreAway').innerText = data.projection.awayGoals;
+
+      // Market Board
+      document.getElementById('mktOver15').innerText = data.markets.over15 + '%';
+      document.getElementById('barOver15').style.width = data.markets.over15 + '%';
+      document.getElementById('mkt1X').innerText = data.markets.homeOrDraw + '%';
+      document.getElementById('bar1X').style.width = data.markets.homeOrDraw + '%';
+      document.getElementById('mktBtts').innerText = data.markets.btts + '%';
+      document.getElementById('barBtts').style.width = data.markets.btts + '%';
+
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
     }
   </script>
 </body>
