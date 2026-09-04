@@ -56,8 +56,11 @@
     .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
 
     .input-group { margin-bottom: 14px; }
-    .input-group label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-group label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
     .input-group input, .input-group select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 0.9rem; }
+
+    .slider-container { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+    .slider-container input[type="range"] { flex: 1; accent-color: var(--accent-lime); cursor: pointer; }
 
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -65,11 +68,12 @@
 
     /* Dashboard UI */
     #dashboard { display: none; }
-    .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; }
-    .best-pick-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.8; }
-    .best-pick-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; padding-right: 60px; }
+    .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; transition: all 0.3s; }
+    .best-pick-card.no-bet { background: #334155; color: #f8fafc; border: 1px solid #475569; }
+    .best-pick-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.9; }
+    .best-pick-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; padding-right: 60px; }
     .best-pick-desc { font-size: 0.8rem; opacity: 0.9; }
-    .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 2rem; font-weight: 900; }
+    .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 1.8rem; font-weight: 900; }
 
     .bar-wrapper { margin-bottom: 12px; }
     .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-dim); }
@@ -80,6 +84,7 @@
     .fill-red { background: var(--accent-red); }
 
     .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 12px 0; }
+    .tier-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--input-bg); color: var(--accent-blue); font-weight: 700; text-transform: uppercase; }
   </style>
 </head>
 <body>
@@ -91,9 +96,8 @@
     </div>
 
     <h1 class="hero-title">Read the game<br>before it happens.</h1>
-    <p class="hero-sub">One workspace for five sports. Bring your numbers or search a fixture, then let the model find the edge.</p>
+    <p class="hero-sub">Adjust strict risk filters (70%-90%) and league tiers to find high-confidence edges.</p>
 
-    <!-- Sport Selector Tabs -->
     <div class="sport-tabs">
       <button class="tab-btn active" onclick="selectSport('football', this)">Football</button>
       <button class="tab-btn" onclick="selectSport('basketball', this)">Basketball</button>
@@ -102,18 +106,33 @@
       <button class="tab-btn" onclick="selectSport('table_tennis', this)">Table Tennis</button>
     </div>
 
-    <!-- Dynamic Input Form -->
     <div class="card">
       <div class="card-title" id="cardHeader">Set Football Fixture</div>
 
       <div class="input-group">
-        <label id="lblHomeTeam">Home Team</label>
-        <input type="text" id="homeTeam" placeholder="e.g. Home Team">
+        <label id="lblLeagueTier">League Tier Level <span class="tier-tag" id="tierTag">Top Tier</span></label>
+        <select id="leagueTier" onchange="updateTierTag()">
+          <option value="major" selected>Major Tier (e.g. Premier League, NBA, ATP)</option>
+          <option value="lower">Lower / Regional League (e.g. League Two, Liga 3, Challenger)</option>
+        </select>
       </div>
 
       <div class="input-group">
-        <label id="lblAwayTeam">Away Team</label>
-        <input type="text" id="awayTeam" placeholder="e.g. Away Team">
+        <label>Strict Filter Threshold <span id="thresholdValDisplay">75%</span></label>
+        <div class="slider-container">
+          <input type="range" id="filterThreshold" min="70" max="90" value="75" step="1" oninput="document.getElementById('thresholdValDisplay').innerText = this.value + '%'">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label id="lblHomeTeam">Home Team</label>
+          <input type="text" id="homeTeam" placeholder="e.g. Home Team">
+        </div>
+        <div class="input-group">
+          <label id="lblAwayTeam">Away Team</label>
+          <input type="text" id="awayTeam" placeholder="e.g. Away Team">
+        </div>
       </div>
 
       <div class="grid-2">
@@ -141,10 +160,9 @@
       <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Football →</button>
     </div>
 
-    <!-- Dynamic Results Dashboard -->
     <div id="dashboard">
-      <div class="best-pick-card">
-        <div class="best-pick-badge">⚡ Best Pick / Model Read</div>
+      <div class="best-pick-card" id="bestPickCard">
+        <div class="best-pick-badge" id="bestPickBadge">⚡ Passed Strict Filter</div>
         <div class="best-pick-title" id="bestPickTitle">Home win or draw</div>
         <div class="best-pick-desc" id="bestPickDesc">The model found a high-confidence market edge.</div>
         <div class="best-pick-pct" id="bestPickPct">83%</div>
@@ -228,6 +246,18 @@
       }
     };
 
+    function updateTierTag() {
+      const val = document.getElementById('leagueTier').value;
+      const tag = document.getElementById('tierTag');
+      if (val === 'lower') {
+        tag.innerText = 'Lower League Model';
+        tag.style.color = 'var(--accent-lime)';
+      } else {
+        tag.innerText = 'Top Tier';
+        tag.style.color = 'var(--accent-blue)';
+      }
+    }
+
     function selectSport(sport, btn) {
       currentSport = sport;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -264,14 +294,34 @@
       const homeConceded = document.getElementById('homeConceded').value;
       const awayAvg = document.getElementById('awayAvg').value;
       const awayConceded = document.getElementById('awayConceded').value;
+      const strictThreshold = document.getElementById('filterThreshold').value;
+      const leagueTier = document.getElementById('leagueTier').value;
 
       const res = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sport: currentSport, homeTeam, awayTeam, homeAvg, homeConceded, awayAvg, awayConceded })
+        body: JSON.stringify({ 
+          sport: currentSport, 
+          homeTeam, awayTeam, 
+          homeAvg, homeConceded, 
+          awayAvg, awayConceded,
+          strictThreshold: Number(strictThreshold),
+          leagueTier
+        })
       });
 
       const data = await res.json();
+
+      const card = document.getElementById('bestPickCard');
+      const badge = document.getElementById('bestPickBadge');
+
+      if (data.bestPick.passedFilter) {
+        card.classList.remove('no-bet');
+        badge.innerText = `⚡ PASSED ${strictThreshold}% STRICT FILTER`;
+      } else {
+        card.classList.add('no-bet');
+        badge.innerText = `⚠️ BELOW ${strictThreshold}% THRESHOLD - NO BET / PASS`;
+      }
 
       document.getElementById('bestPickTitle').innerText = data.bestPick.title;
       document.getElementById('bestPickDesc').innerText = data.bestPick.desc;
