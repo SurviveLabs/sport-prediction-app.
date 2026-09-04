@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#ccff00">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="icon" type="image/png" href="https://img.icons8.com/color/192/football.png">
-  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MATCHDAY | Full Market Engine</title>
+
+  <!-- PWA Settings -->
+  <link rel="manifest" href="data:application/manifest+json;choice=pwa,base64,ewogICJzaG9ydF9uYW1lIjogIk1BVENIREFZIiwKICAibmFtZSI6ICJNQVRDSERBWSBTcG9ydHMgRW5naW5lIiwKICAiaWQiOiAiLyIsCiAgInN0YXJ0X3VybCI6ICIvIiwKICAic2NvcGUiOiAiLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgIm9yaWVudGF0aW9uIjogInBvcnRyYWl0IiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGIwZjE3IiwKICAidGhlbWVfY29sb3IiOiAiI2NjZmYwMCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImh0dHBzOi8vaW1nLmljb25zOC5jb20vY29sb3IvNTEyL2Zvb3RiYWxsLnBuZyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIiwKICAgICAgInB1cnBvc2UiOiAiYW55IgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2NvbG9yLzE5Mi9mb290YmFsbC5wbmciLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIsCiAgICAgICJwdXJwb3NlIjogImFueSIKICAgIH0KICBdCn0=">
+  <meta name="theme-color" content="#ccff00">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="https://img.icons8.com/color/192/football.png">
+
   <style>
     :root[data-theme="dark"] {
       --bg-color: #0b0f17;
@@ -20,7 +24,6 @@
       --accent-lime: #ccff00;
       --accent-dark: #0f172a;
       --accent-blue: #38bdf8;
-      --accent-red: #f87171;
     }
     :root[data-theme="light"] {
       --bg-color: #f8fafc;
@@ -32,7 +35,6 @@
       --accent-lime: #84cc16;
       --accent-dark: #0f172a;
       --accent-blue: #0284c7;
-      --accent-red: #ef4444;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -329,7 +331,6 @@
       document.getElementById('scoreHome').innerText = data.projection.homeGoals;
       document.getElementById('scoreAway').innerText = data.projection.awayGoals;
 
-      // Standard Markets Section
       const stdContainer = document.getElementById('stdContainer');
       stdContainer.innerHTML = data.stdMarkets.map(item => `
         <div class="bar-wrapper">
@@ -338,7 +339,6 @@
         </div>
       `).join('');
 
-      // Combo Markets Section
       const comboContainer = document.getElementById('comboContainer');
       comboContainer.innerHTML = data.comboMarkets.map(item => `
         <div class="bar-wrapper">
@@ -350,17 +350,18 @@
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
     }
+
+    // Inline Service Worker for PWA Installation Support
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', e => self.skipWaiting());
+        self.addEventListener('activate', e => self.clients.claim());
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
+      `;
+      const blob = new Blob([swCode], { type: 'text/javascript' });
+      const blobUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(blobUrl, { scope: '/' }).catch(() => {});
+    }
   </script>
-  
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(reg => console.log('SW Registered'))
-      .catch(err => console.error('SW Error', err));
-  }
-  </script>
-  
-  
-  
 </body>
 </html>
