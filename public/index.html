@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MATCHDAY | All Sports Combo Engine</title>
+  <title>MATCHDAY | Full Market Engine</title>
   <style>
     :root[data-theme="dark"] {
       --bg-color: #0b0f17;
@@ -53,8 +53,8 @@
     .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
     .tab-btn.active { background: var(--accent-lime); color: var(--accent-dark); font-weight: 600; border-color: var(--accent-lime); }
 
-    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
-    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-blue); }
 
     .input-group { margin-bottom: 14px; }
     .input-group label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -76,8 +76,9 @@
     .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-dim); }
     .bar-track { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
     .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; background: var(--accent-lime); }
+    .fill-blue { background: var(--accent-blue); }
 
-    .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 12px 0; }
+    .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 10px 0; }
     .tier-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--input-bg); color: var(--accent-blue); font-weight: 700; text-transform: uppercase; }
   </style>
 </head>
@@ -85,14 +86,13 @@
 
   <div class="container">
     <div class="top-bar">
-      <div class="brand">MATCHDAY <span>/ ALL SPORTS ENGINE</span></div>
+      <div class="brand">MATCHDAY <span>/ FULL ENGINE</span></div>
       <button class="theme-toggle" id="themeBtn">☀️ / 🌙</button>
     </div>
 
     <h1 class="hero-title">Read the game<br>before it happens.</h1>
-    <p class="hero-sub">Select your sport below to dynamically update form metrics and view calculated combo probabilities.</p>
+    <p class="hero-sub">Select your sport to generate standard markets, goals/points lines, and combo probabilities.</p>
 
-    <!-- Full 10 Sport Navigation Bar -->
     <div class="sport-tabs">
       <button class="tab-btn active" onclick="selectSport('football', this)">Football</button>
       <button class="tab-btn" onclick="selectSport('basketball', this)">Basketball</button>
@@ -150,26 +150,31 @@
         </div>
       </div>
 
-      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Football →</button>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze All Markets →</button>
     </div>
 
     <div id="dashboard">
       <div class="best-pick-card" id="bestPickCard">
         <div class="best-pick-badge" id="bestPickBadge">⚡ Passed Auto Filter</div>
-        <div class="best-pick-title" id="bestPickTitle">ARSENAL & OVER 1.5</div>
-        <div class="best-pick-desc" id="bestPickDesc">High-probability combination edge found.</div>
-        <div class="best-pick-pct" id="bestPickPct">78%</div>
+        <div class="best-pick-title" id="bestPickTitle">ARSENAL WIN OR DRAW</div>
+        <div class="best-pick-desc" id="bestPickDesc">Highest confidence edge found across all markets.</div>
+        <div class="best-pick-pct" id="bestPickPct">83%</div>
       </div>
 
       <div class="card">
-        <div class="card-title" id="scoreTitle">Expected Projection</div>
+        <div class="card-title">Expected Score Line</div>
         <div class="score-display">
           <span id="scoreHome">2</span> - <span id="scoreAway">1</span>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Combo Market Probabilities</div>
+        <div class="card-title">1. Straight / Match Winners</div>
+        <div id="stdContainer"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Combo Markets (Winner + Lines)</div>
         <div id="comboContainer"></div>
       </div>
     </div>
@@ -319,8 +324,18 @@
       document.getElementById('scoreHome').innerText = data.projection.homeGoals;
       document.getElementById('scoreAway').innerText = data.projection.awayGoals;
 
-      const container = document.getElementById('comboContainer');
-      container.innerHTML = data.comboMarkets.map(item => `
+      // Standard Markets Section
+      const stdContainer = document.getElementById('stdContainer');
+      stdContainer.innerHTML = data.stdMarkets.map(item => `
+        <div class="bar-wrapper">
+          <div class="bar-label"><span>${item.label}</span><span>${item.val}%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-blue" style="width: ${item.val}%;"></div></div>
+        </div>
+      `).join('');
+
+      // Combo Markets Section
+      const comboContainer = document.getElementById('comboContainer');
+      comboContainer.innerHTML = data.comboMarkets.map(item => `
         <div class="bar-wrapper">
           <div class="bar-label"><span>${item.label}</span><span>${item.val}%</span></div>
           <div class="bar-track"><div class="bar-fill" style="width: ${item.val}%;"></div></div>
