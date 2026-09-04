@@ -1,197 +1,356 @@
-const express = require('express');
-const cors = require('cors');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.send('Multi-Sport & Lower-League Prediction Engine active.');
-});
-
-app.post('/api/predict', (req, res) => {
-  const { 
-    sport = 'football', 
-    homeTeam = 'Home', 
-    awayTeam = 'Away', 
-    homeAvg, homeConceded, 
-    awayAvg, awayConceded,
-    strictThreshold = 75,
-    leagueTier = 'major'
-  } = req.body;
-
-  let hScored = Number(homeAvg) || 0;
-  let hCon = Number(homeConceded) || 0;
-  let aScored = Number(awayAvg) || 0;
-  let aCon = Number(awayConceded) || 0;
-
-  // Apply Lower League Variance & Home-Advantage Adjustments
-  const isLowerLeague = leagueTier === 'lower';
-  const homeAdvantageBoost = isLowerLeague ? 1.12 : 1.05;
-
-  hScored = hScored * homeAdvantageBoost;
-
-  let bestPick = {};
-  let probabilities = {};
-  let projection = {};
-  let markets = {};
-
-  switch (sport) {
-    case 'basketball': {
-      const expHomePts = Math.round((hScored + aCon) / 2);
-      const expAwayPts = Math.round((aScored + hCon) / 2);
-      const totalPoints = expHomePts + expAwayPts;
-      
-      const homeWinProb = Math.min(95, Math.max(5, Math.round((expHomePts / totalPoints) * 100)));
-      const awayWinProb = 100 - homeWinProb;
-      const topProb = Math.max(homeWinProb, awayWinProb);
-
-      const passed = topProb >= strictThreshold;
-
-      bestPick = {
-        title: passed ? (homeWinProb > awayWinProb ? `${homeTeam} Moneyline` : `${awayTeam} Moneyline`) : "PASS / NO BET",
-        desc: passed 
-          ? `Model detected ${topProb}% confidence edge (${isLowerLeague ? 'Lower League Pace Variance Applied' : 'Standard Model'}).`
-          : `Highest confidence (${topProb}%) failed your ${strictThreshold}% strict filter cutoff.`,
-        confidence: topProb,
-        passedFilter: passed
-      };
-      probabilities = { home: homeWinProb, draw: 0, away: awayWinProb };
-      projection = { homeGoals: expHomePts, awayGoals: expAwayPts };
-      markets = {
-        label1: "OVER 210.5 TOTAL POINTS", val1: Math.min(95, Math.round((totalPoints / 220) * 85)),
-        label2: `${homeTeam.toUpperCase()} MONEYLINE`, val2: homeWinProb,
-        label3: `${awayTeam.toUpperCase()} MONEYLINE`, val3: awayWinProb
-      };
-      break;
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MATCHDAY | Auto-Filter Predictor</title>
+  <style>
+    :root[data-theme="dark"] {
+      --bg-color: #0b0f17;
+      --card-bg: #131b2e;
+      --input-bg: #1a243b;
+      --text-color: #f1f5f9;
+      --text-dim: #94a3b8;
+      --border-color: #1e293b;
+      --accent-lime: #ccff00;
+      --accent-dark: #0f172a;
+      --accent-blue: #38bdf8;
+      --accent-red: #f87171;
+    }
+    :root[data-theme="light"] {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --input-bg: #f1f5f9;
+      --text-color: #0f172a;
+      --text-dim: #64748b;
+      --border-color: #e2e8f0;
+      --accent-lime: #84cc16;
+      --accent-dark: #0f172a;
+      --accent-blue: #0284c7;
+      --accent-red: #ef4444;
     }
 
-    case 'ice_hockey': {
-      const expHomeGoals = Number(((hScored + aCon) / 2).toFixed(2));
-      const expAwayGoals = Number(((aScored + hCon) / 2).toFixed(2));
-      const totalGoals = expHomeGoals + expAwayGoals;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 16px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .container { max-width: 480px; margin: 0 auto; }
 
-      const homeProb = Math.min(85, Math.max(15, Math.round((expHomeGoals / totalGoals) * 100 - 5)));
-      const awayProb = Math.min(85, Math.max(15, Math.round((expAwayGoals / totalGoals) * 100 - 10)));
-      const drawProb = 100 - homeProb - awayProb;
-      const maxEdge = Math.max(homeProb + drawProb, Math.round(totalGoals * 15));
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .brand { font-weight: 800; font-size: 0.9rem; letter-spacing: 1px; }
+    .brand span { font-weight: 400; color: var(--text-dim); }
+    .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
 
-      const passed = maxEdge >= strictThreshold;
+    .hero-title { font-size: 2rem; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
+    .hero-sub { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px; line-height: 1.4; }
 
-      bestPick = {
-        title: passed ? (totalGoals > 5.5 ? "Over 5.5 Match Goals" : `${homeTeam} +1.5 Puckline`) : "PASS / NO BET",
-        desc: passed ? "Target match goal expectancy cleared risk filter." : `Edge rating (${maxEdge}%) is below your ${strictThreshold}% threshold.`,
-        confidence: maxEdge,
-        passedFilter: passed
-      };
-      probabilities = { home: homeProb, draw: drawProb, away: awayProb };
-      projection = { homeGoals: Math.round(expHomeGoals), awayGoals: Math.round(expAwayGoals) };
-      markets = {
-        label1: "OVER 5.5 MATCH GOALS", val1: Math.round(Math.min(95, totalGoals * 15)),
-        label2: `${homeTeam.toUpperCase()} PUCKLINE (+1.5)`, val2: homeProb + drawProb,
-        label3: "BOTH TEAMS TO SCORE 2+", val3: Math.round(Math.min(90, expHomeGoals * expAwayGoals * 28))
-      };
-      break;
+    .sport-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 20px; }
+    .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; }
+    .tab-btn.active { background: var(--accent-lime); color: var(--accent-dark); font-weight: 600; border-color: var(--accent-lime); }
+
+    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+
+    .input-group { margin-bottom: 14px; }
+    .input-group label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-group input, .input-group select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 0.9rem; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .analyze-btn { width: 100%; padding: 14px; background: var(--accent-lime); color: var(--accent-dark); border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
+
+    /* Dashboard UI */
+    #dashboard { display: none; }
+    .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; transition: all 0.3s; }
+    .best-pick-card.no-bet { background: #334155; color: #f8fafc; border: 1px solid #475569; }
+    .best-pick-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.9; }
+    .best-pick-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; padding-right: 60px; }
+    .best-pick-desc { font-size: 0.8rem; opacity: 0.9; }
+    .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 1.8rem; font-weight: 900; }
+
+    .bar-wrapper { margin-bottom: 12px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-dim); }
+    .bar-track { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .fill-lime { background: var(--accent-lime); }
+    .fill-blue { background: var(--accent-blue); }
+    .fill-red { background: var(--accent-red); }
+
+    .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 12px 0; }
+    .tier-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--input-bg); color: var(--accent-blue); font-weight: 700; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="top-bar">
+      <div class="brand">MATCHDAY <span>/ AUTO-FILTER</span></div>
+      <button class="theme-toggle" id="themeBtn">☀️ / 🌙</button>
+    </div>
+
+    <h1 class="hero-title">Read the game<br>before it happens.</h1>
+    <p class="hero-sub">Automated risk filtering instantly adjusts threshold limits based on sport efficiency and league tier.</p>
+
+    <div class="sport-tabs">
+      <button class="tab-btn active" onclick="selectSport('football', this)">Football</button>
+      <button class="tab-btn" onclick="selectSport('basketball', this)">Basketball</button>
+      <button class="tab-btn" onclick="selectSport('ice_hockey', this)">Ice Hockey</button>
+      <button class="tab-btn" onclick="selectSport('tennis', this)">Tennis</button>
+      <button class="tab-btn" onclick="selectSport('table_tennis', this)">Table Tennis</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="cardHeader">Set Football Fixture</div>
+
+      <div class="input-group">
+        <label id="lblLeagueTier">League Tier Level <span class="tier-tag" id="tierTag">75% Auto Threshold</span></label>
+        <select id="leagueTier" onchange="updateTierTag()">
+          <option value="major" selected>Major Tier (Auto 75% Threshold)</option>
+          <option value="lower">Lower / Regional League (Auto 80% Threshold)</option>
+        </select>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label id="lblHomeTeam">Home Team</label>
+          <input type="text" id="homeTeam" placeholder="e.g. Home Team">
+        </div>
+        <div class="input-group">
+          <label id="lblAwayTeam">Away Team</label>
+          <input type="text" id="awayTeam" placeholder="e.g. Away Team">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label id="lblHomeAvg">Home Scored Avg</label>
+          <input type="number" id="homeAvg" step="0.01" value="1.82">
+        </div>
+        <div class="input-group">
+          <label id="lblHomeCon">Home Conceded Avg</label>
+          <input type="number" id="homeConceded" step="0.01" value="0.92">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="input-group">
+          <label id="lblAwayAvg">Away Scored Avg</label>
+          <input type="number" id="awayAvg" step="0.01" value="1.34">
+        </div>
+        <div class="input-group">
+          <label id="lblAwayCon">Away Conceded Avg</label>
+          <input type="number" id="awayConceded" step="0.01" value="1.18">
+        </div>
+      </div>
+
+      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Football →</button>
+    </div>
+
+    <div id="dashboard">
+      <div class="best-pick-card" id="bestPickCard">
+        <div class="best-pick-badge" id="bestPickBadge">⚡ Passed Auto Filter</div>
+        <div class="best-pick-title" id="bestPickTitle">Home win or draw</div>
+        <div class="best-pick-desc" id="bestPickDesc">The model found a high-confidence market edge.</div>
+        <div class="best-pick-pct" id="bestPickPct">83%</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Where the edge sits</div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span id="labelHomeProb">HOME WIN</span><span id="pctHome">56%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barHome" style="width: 56%;"></div></div>
+        </div>
+        <div class="bar-wrapper" id="drawWrapper">
+          <div class="bar-label"><span>DRAW</span><span id="pctDraw">27%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-blue" id="barDraw" style="width: 27%;"></div></div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span id="labelAwayProb">AWAY WIN</span><span id="pctAway">18%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-red" id="barAway" style="width: 18%;"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" id="scoreTitle">Expected Finish</div>
+        <div class="score-display">
+          <span id="scoreHome">1</span> - <span id="scoreAway">1</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Available Edges</div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span id="lblMkt1">OVER 1.5 GOALS</span><span id="valMkt1">75%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barMkt1" style="width: 75%;"></div></div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span id="lblMkt2">HOME WIN OR DRAW</span><span id="valMkt2">83%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-blue" id="barMkt2" style="width: 83%;"></div></div>
+        </div>
+        <div class="bar-wrapper">
+          <div class="bar-label"><span id="lblMkt3">BTTS : YES</span><span id="valMkt3">49%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barMkt3" style="width: 49%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentSport = 'football';
+
+    const sportConfigs = {
+      football: {
+        header: 'Set Football Fixture', btn: 'Analyze Football →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Avg Goals', l2: 'Home Allowed Goals', l3: 'Away Avg Goals', l4: 'Away Allowed Goals',
+        v1: 1.82, v2: 0.92, v3: 1.34, v4: 1.18
+      },
+      basketball: {
+        header: 'Set Basketball Fixture', btn: 'Analyze Basketball →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home PPG', l2: 'Home Opp PPG', l3: 'Away PPG', l4: 'Away Opp PPG',
+        v1: 108.5, v2: 102.1, v3: 104.0, v4: 106.8
+      },
+      ice_hockey: {
+        header: 'Set Hockey Fixture', btn: 'Analyze Ice Hockey →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Goals/G', l2: 'Home Conceded/G', l3: 'Away Goals/G', l4: 'Away Conceded/G',
+        v1: 3.2, v2: 2.5, v3: 2.8, v4: 3.1
+      },
+      tennis: {
+        header: 'Set Tennis Match', btn: 'Analyze Tennis →',
+        p1: 'Player 1', p2: 'Player 2',
+        l1: 'P1 Hold %', l2: 'P1 Break %', l3: 'P2 Hold %', l4: 'P2 Break %',
+        v1: 82.0, v2: 21.0, v3: 78.0, v4: 19.0
+      },
+      table_tennis: {
+        header: 'Set Table Tennis Match', btn: 'Analyze Table Tennis →',
+        p1: 'Player 1', p2: 'Player 2',
+        l1: 'P1 Win Rate %', l2: 'P1 Avg Pts/Set', l3: 'P2 Win Rate %', l4: 'P2 Avg Pts/Set',
+        v1: 65.0, v2: 9.8, v3: 58.0, v4: 9.2
+      }
+    };
+
+    function updateTierTag() {
+      const val = document.getElementById('leagueTier').value;
+      const tag = document.getElementById('tierTag');
+      if (val === 'lower') {
+        tag.innerText = '80% Auto Threshold';
+        tag.style.color = 'var(--accent-lime)';
+      } else {
+        tag.innerText = '75% Auto Threshold';
+        tag.style.color = 'var(--accent-blue)';
+      }
     }
 
-    case 'tennis': {
-      const p1Prob = Math.min(95, Math.max(5, Math.round(((hScored + hCon) / (hScored + hCon + aScored + aCon)) * 100)));
-      const p2Prob = 100 - p1Prob;
-      const topProb = Math.max(p1Prob, p2Prob);
-      const passed = topProb >= strictThreshold;
+    function selectSport(sport, btn) {
+      currentSport = sport;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
 
-      bestPick = {
-        title: passed ? (p1Prob > p2Prob ? `${homeTeam} Match Win` : `${awayTeam} Match Win`) : "PASS / NO BET",
-        desc: passed ? "Service hold & break ratio edge confirmed." : `Confidence (${topProb}%) is lower than strict cutoff (${strictThreshold}%).`,
-        confidence: topProb,
-        passedFilter: passed
-      };
-      probabilities = { home: p1Prob, draw: 0, away: p2Prob };
-      projection = { homeGoals: p1Prob > p2Prob ? 2 : 0, awayGoals: p2Prob > p1Prob ? 2 : 0 };
-      markets = {
-        label1: "OVER 21.5 MATCH GAMES", val1: 78,
-        label2: `${homeTeam.toUpperCase()} SET 1 WIN`, val2: p1Prob,
-        label3: "BOTH PLAYERS WIN A SET", val3: 62
-      };
-      break;
+      const cfg = sportConfigs[sport];
+      document.getElementById('cardHeader').innerText = cfg.header;
+      document.getElementById('analyzeBtn').innerText = cfg.btn;
+      document.getElementById('lblHomeTeam').innerText = cfg.p1;
+      document.getElementById('lblAwayTeam').innerText = cfg.p2;
+
+      document.getElementById('lblHomeAvg').innerText = cfg.l1;
+      document.getElementById('lblHomeCon').innerText = cfg.l2;
+      document.getElementById('lblAwayAvg').innerText = cfg.l3;
+      document.getElementById('lblAwayCon').innerText = cfg.l4;
+
+      document.getElementById('homeAvg').value = cfg.v1;
+      document.getElementById('homeConceded').value = cfg.v2;
+      document.getElementById('awayAvg').value = cfg.v3;
+      document.getElementById('awayConceded').value = cfg.v4;
+
+      document.getElementById('dashboard').style.display = 'none';
     }
 
-    case 'table_tennis': {
-      const p1Prob = Math.min(95, Math.max(5, Math.round((hScored / (hScored + aScored)) * 100)));
-      const p2Prob = 100 - p1Prob;
-      const topProb = Math.max(p1Prob, p2Prob);
-      const passed = topProb >= strictThreshold;
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const html = document.documentElement;
+      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
 
-      bestPick = {
-        title: passed ? (p1Prob > p2Prob ? `${homeTeam} -1.5 Games` : `${awayTeam} Match Win`) : "PASS / NO BET",
-        desc: passed ? "Set conversion efficiency cleared risk filter." : `Filtered out: ${topProb}% did not meet ${strictThreshold}% requirement.`,
-        confidence: topProb,
-        passedFilter: passed
-      };
-      probabilities = { home: p1Prob, draw: 0, away: p2Prob };
-      projection = { homeGoals: p1Prob > p2Prob ? 3 : 1, awayGoals: p2Prob > p1Prob ? 3 : 1 };
-      markets = {
-        label1: "OVER 3.5 SETS", val1: 82,
-        label2: `${homeTeam.toUpperCase()} MATCH WIN`, val2: p1Prob,
-        label3: `${awayTeam.toUpperCase()} MATCH WIN`, val3: p2Prob
-      };
-      break;
-    }
+    async function runAnalysis() {
+      const homeTeam = document.getElementById('homeTeam').value || 'Home';
+      const awayTeam = document.getElementById('awayTeam').value || 'Away';
+      const homeAvg = document.getElementById('homeAvg').value;
+      const homeConceded = document.getElementById('homeConceded').value;
+      const awayAvg = document.getElementById('awayAvg').value;
+      const awayConceded = document.getElementById('awayConceded').value;
+      const leagueTier = document.getElementById('leagueTier').value;
 
-    case 'football':
-    default: {
-      const expHome = Number(((hScored + aCon) / 2).toFixed(2));
-      const expAway = Number(((aScored + hCon) / 2).toFixed(2));
-      const total = expHome + expAway;
+      const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          sport: currentSport, 
+          homeTeam, awayTeam, 
+          homeAvg, homeConceded, 
+          awayAvg, awayConceded,
+          leagueTier
+        })
+      });
 
-      const homeProb = Math.min(88, Math.max(12, Math.round((expHome / total) * 100 - 5)));
-      const awayProb = Math.min(88, Math.max(12, Math.round((expAway / total) * 100 - 10)));
-      const drawProb = 100 - homeProb - awayProb;
+      const data = await res.json();
 
-      const doubleChanceProb = homeProb + drawProb;
-      const over15Prob = Math.round(Math.min(95, total * 26));
-      const topEdge = Math.max(doubleChanceProb, over15Prob);
+      const card = document.getElementById('bestPickCard');
+      const badge = document.getElementById('bestPickBadge');
 
-      const passed = topEdge >= strictThreshold;
-
-      let pickTitle = "PASS / NO BET";
-      if (passed) {
-        if (doubleChanceProb >= strictThreshold) {
-          pickTitle = `${homeTeam} win or draw`;
-        } else {
-          pickTitle = "Over 1.5 Goals";
-        }
+      if (data.bestPick.passedFilter) {
+        card.classList.remove('no-bet');
+        badge.innerText = `⚡ PASSED ${data.autoThreshold}% AUTO FILTER`;
+      } else {
+        card.classList.add('no-bet');
+        badge.innerText = `⚠️ BELOW ${data.autoThreshold}% AUTO THRESHOLD - NO BET / PASS`;
       }
 
-      bestPick = {
-        title: pickTitle,
-        desc: passed 
-          ? `Model cleared the ${strictThreshold}% strict filter threshold (${isLowerLeague ? 'Lower League Adjustment Active' : 'Major League'}).`
-          : `Match probability edge (${topEdge}%) failed to clear your ${strictThreshold}% strict threshold limit.`,
-        confidence: topEdge,
-        passedFilter: passed
-      };
-      probabilities = { home: homeProb, draw: drawProb, away: awayProb };
-      projection = { homeGoals: Math.round(expHome), awayGoals: Math.round(expAway) };
-      markets = {
-        label1: "OVER 1.5 GOALS", val1: over15Prob,
-        label2: `${homeTeam.toUpperCase()} WIN OR DRAW`, val2: doubleChanceProb,
-        label3: "BTTS : YES", val3: Math.round(Math.min(90, expHome * expAway * 30))
-      };
-      break;
+      document.getElementById('bestPickTitle').innerText = data.bestPick.title;
+      document.getElementById('bestPickDesc').innerText = data.bestPick.desc;
+      document.getElementById('bestPickPct').innerText = data.bestPick.confidence + '%';
+
+      document.getElementById('labelHomeProb').innerText = `${homeTeam.toUpperCase()} WIN`;
+      document.getElementById('labelAwayProb').innerText = `${awayTeam.toUpperCase()} WIN`;
+
+      document.getElementById('pctHome').innerText = data.probabilities.home + '%';
+      document.getElementById('barHome').style.width = data.probabilities.home + '%';
+
+      if (data.probabilities.draw === 0) {
+        document.getElementById('drawWrapper').style.display = 'none';
+      } else {
+        document.getElementById('drawWrapper').style.display = 'block';
+        document.getElementById('pctDraw').innerText = data.probabilities.draw + '%';
+        document.getElementById('barDraw').style.width = data.probabilities.draw + '%';
+      }
+
+      document.getElementById('pctAway').innerText = data.probabilities.away + '%';
+      document.getElementById('barAway').style.width = data.probabilities.away + '%';
+
+      document.getElementById('scoreHome').innerText = data.projection.homeGoals;
+      document.getElementById('scoreAway').innerText = data.projection.awayGoals;
+
+      document.getElementById('lblMkt1').innerText = data.markets.label1;
+      document.getElementById('valMkt1').innerText = data.markets.val1 + '%';
+      document.getElementById('barMkt1').style.width = data.markets.val1 + '%';
+
+      document.getElementById('lblMkt2').innerText = data.markets.label2;
+      document.getElementById('valMkt2').innerText = data.markets.val2 + '%';
+      document.getElementById('barMkt2').style.width = data.markets.val2 + '%';
+
+      document.getElementById('lblMkt3').innerText = data.markets.label3;
+      document.getElementById('valMkt3').innerText = data.markets.val3 + '%';
+      document.getElementById('barMkt3').style.width = data.markets.val3 + '%';
+
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
     }
-  }
-
-  res.json({
-    sport,
-    leagueTier,
-    match: `${homeTeam} vs ${awayTeam}`,
-    bestPick,
-    probabilities,
-    projection,
-    markets
-  });
-});
-
-module.exports = app;
-      
+  </script>
+</body>
+</html>
+  
