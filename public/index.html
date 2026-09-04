@@ -63,15 +63,15 @@
 
     .analyze-btn { width: 100%; padding: 14px; background: var(--accent-lime); color: var(--accent-dark); border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
 
-    /* Results Dashboard Cards */
+    /* Dashboard UI */
     #dashboard { display: none; }
     .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; }
     .best-pick-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.8; }
-    .best-pick-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
-    .best-pick-desc { font-size: 0.8rem; opacity: 0.9; margin-bottom: 12px; }
-    .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 2.2rem; font-weight: 900; }
+    .best-pick-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; padding-right: 60px; }
+    .best-pick-desc { font-size: 0.8rem; opacity: 0.9; }
+    .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 2rem; font-weight: 900; }
 
-    .bar-wrapper { margin-bottom: 10px; }
+    .bar-wrapper { margin-bottom: 12px; }
     .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-dim); }
     .bar-track { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
     .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
@@ -80,11 +80,6 @@
     .fill-red { background: var(--accent-red); }
 
     .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 12px 0; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-    .badge-win { background: #22c55e; color: #fff; }
-    .badge-draw { background: #eab308; color: #fff; }
-    .badge-loss { background: #ef4444; color: #fff; }
-    .sequence-row { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -107,18 +102,18 @@
       <button class="tab-btn" onclick="selectSport('table_tennis', this)">Table Tennis</button>
     </div>
 
-    <!-- Input Card -->
+    <!-- Dynamic Input Form -->
     <div class="card">
       <div class="card-title" id="cardHeader">Set Football Fixture</div>
 
       <div class="input-group">
-        <label>Home Team</label>
-        <input type="text" id="homeTeam" placeholder="e.g. Home">
+        <label id="lblHomeTeam">Home Team</label>
+        <input type="text" id="homeTeam" placeholder="e.g. Home Team">
       </div>
 
       <div class="input-group">
-        <label>Away Team</label>
-        <input type="text" id="awayTeam" placeholder="e.g. Away">
+        <label id="lblAwayTeam">Away Team</label>
+        <input type="text" id="awayTeam" placeholder="e.g. Away Team">
       </div>
 
       <div class="grid-2">
@@ -146,67 +141,51 @@
       <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze Football →</button>
     </div>
 
-    <!-- Results Dashboard -->
+    <!-- Dynamic Results Dashboard -->
     <div id="dashboard">
-      <!-- Best Pick Banner -->
       <div class="best-pick-card">
         <div class="best-pick-badge">⚡ Best Pick / Model Read</div>
         <div class="best-pick-title" id="bestPickTitle">Home win or draw</div>
-        <div class="best-pick-desc" id="bestPickDesc">The model found a market above the threshold.</div>
+        <div class="best-pick-desc" id="bestPickDesc">The model found a high-confidence market edge.</div>
         <div class="best-pick-pct" id="bestPickPct">83%</div>
       </div>
 
-      <!-- Outcome Edge -->
       <div class="card">
         <div class="card-title">Where the edge sits</div>
         <div class="bar-wrapper">
-          <div class="bar-label"><span>HOME WIN</span><span id="pctHome">56%</span></div>
+          <div class="bar-label"><span id="labelHomeProb">HOME WIN</span><span id="pctHome">56%</span></div>
           <div class="bar-track"><div class="bar-fill fill-lime" id="barHome" style="width: 56%;"></div></div>
         </div>
-        <div class="bar-wrapper">
+        <div class="bar-wrapper" id="drawWrapper">
           <div class="bar-label"><span>DRAW</span><span id="pctDraw">27%</span></div>
           <div class="bar-track"><div class="bar-fill fill-blue" id="barDraw" style="width: 27%;"></div></div>
         </div>
         <div class="bar-wrapper">
-          <div class="bar-label"><span>AWAY WIN</span><span id="pctAway">18%</span></div>
+          <div class="bar-label"><span id="labelAwayProb">AWAY WIN</span><span id="pctAway">18%</span></div>
           <div class="bar-track"><div class="bar-fill fill-red" id="barAway" style="width: 18%;"></div></div>
         </div>
       </div>
 
-      <!-- Score Projection & Form -->
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Expected finish</div>
-          <div class="score-display">
-            <span id="scoreHome">1</span> - <span id="scoreAway">1</span>
-          </div>
-          <div style="font-size: 0.75rem; color: var(--text-dim); text-align: center;" id="expRange">0.9-2.5 to 0.1-1.7</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Recent sequence</div>
-          <div class="sequence-row">
-            <span class="badge badge-win">W</span>
-            <span class="badge badge-draw">D</span>
-            <span class="badge badge-loss">L</span>
-            <span class="badge badge-win">W</span>
-          </div>
+      <div class="card">
+        <div class="card-title" id="scoreTitle">Expected Finish</div>
+        <div class="score-display">
+          <span id="scoreHome">1</span> - <span id="scoreAway">1</span>
         </div>
       </div>
 
-      <!-- Market Board -->
       <div class="card">
-        <div class="card-title">Available edges</div>
+        <div class="card-title">Available Edges</div>
         <div class="bar-wrapper">
-          <div class="bar-label"><span>OVER 1.5 GOALS</span><span id="mktOver15">75%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-lime" id="barOver15" style="width: 75%;"></div></div>
+          <div class="bar-label"><span id="lblMkt1">OVER 1.5 GOALS</span><span id="valMkt1">75%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barMkt1" style="width: 75%;"></div></div>
         </div>
         <div class="bar-wrapper">
-          <div class="bar-label"><span>HOME WIN OR DRAW</span><span id="mkt1X">83%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-blue" id="bar1X" style="width: 83%;"></div></div>
+          <div class="bar-label"><span id="lblMkt2">HOME WIN OR DRAW</span><span id="valMkt2">83%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-blue" id="barMkt2" style="width: 83%;"></div></div>
         </div>
         <div class="bar-wrapper">
-          <div class="bar-label"><span>BTTS : YES</span><span id="mktBtts">49%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-lime" id="barBtts" style="width: 49%;"></div></div>
+          <div class="bar-label"><span id="lblMkt3">BTTS : YES</span><span id="valMkt3">49%</span></div>
+          <div class="bar-track"><div class="bar-fill fill-lime" id="barMkt3" style="width: 49%;"></div></div>
         </div>
       </div>
     </div>
@@ -216,12 +195,61 @@
   <script>
     let currentSport = 'football';
 
+    const sportConfigs = {
+      football: {
+        header: 'Set Football Fixture', btn: 'Analyze Football →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Avg Goals', l2: 'Home Allowed Goals', l3: 'Away Avg Goals', l4: 'Away Allowed Goals',
+        v1: 1.82, v2: 0.92, v3: 1.34, v4: 1.18
+      },
+      basketball: {
+        header: 'Set Basketball Fixture', btn: 'Analyze Basketball →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home PPG', l2: 'Home Opp PPG', l3: 'Away PPG', l4: 'Away Opp PPG',
+        v1: 108.5, v2: 102.1, v3: 104.0, v4: 106.8
+      },
+      ice_hockey: {
+        header: 'Set Hockey Fixture', btn: 'Analyze Ice Hockey →',
+        p1: 'Home Team', p2: 'Away Team',
+        l1: 'Home Goals/G', l2: 'Home Conceded/G', l3: 'Away Goals/G', l4: 'Away Conceded/G',
+        v1: 3.2, v2: 2.5, v3: 2.8, v4: 3.1
+      },
+      tennis: {
+        header: 'Set Tennis Match', btn: 'Analyze Tennis →',
+        p1: 'Player 1', p2: 'Player 2',
+        l1: 'P1 Hold %', l2: 'P1 Break %', l3: 'P2 Hold %', l4: 'P2 Break %',
+        v1: 82.0, v2: 21.0, v3: 78.0, v4: 19.0
+      },
+      table_tennis: {
+        header: 'Set Table Tennis Match', btn: 'Analyze Table Tennis →',
+        p1: 'Player 1', p2: 'Player 2',
+        l1: 'P1 Win Rate %', l2: 'P1 Avg Pts/Set', l3: 'P2 Win Rate %', l4: 'P2 Avg Pts/Set',
+        v1: 65.0, v2: 9.8, v3: 58.0, v4: 9.2
+      }
+    };
+
     function selectSport(sport, btn) {
       currentSport = sport;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('cardHeader').innerText = `Set ${sport.replace('_', ' ')} Fixture`;
-      document.getElementById('analyzeBtn').innerText = `Analyze ${sport.replace('_', ' ')} →`;
+
+      const cfg = sportConfigs[sport];
+      document.getElementById('cardHeader').innerText = cfg.header;
+      document.getElementById('analyzeBtn').innerText = cfg.btn;
+      document.getElementById('lblHomeTeam').innerText = cfg.p1;
+      document.getElementById('lblAwayTeam').innerText = cfg.p2;
+
+      document.getElementById('lblHomeAvg').innerText = cfg.l1;
+      document.getElementById('lblHomeCon').innerText = cfg.l2;
+      document.getElementById('lblAwayAvg').innerText = cfg.l3;
+      document.getElementById('lblAwayCon').innerText = cfg.l4;
+
+      document.getElementById('homeAvg').value = cfg.v1;
+      document.getElementById('homeConceded').value = cfg.v2;
+      document.getElementById('awayAvg').value = cfg.v3;
+      document.getElementById('awayConceded').value = cfg.v4;
+
+      document.getElementById('dashboard').style.display = 'none';
     }
 
     document.getElementById('themeBtn').addEventListener('click', () => {
@@ -245,30 +273,41 @@
 
       const data = await res.json();
 
-      // Populate Best Pick
       document.getElementById('bestPickTitle').innerText = data.bestPick.title;
       document.getElementById('bestPickDesc').innerText = data.bestPick.desc;
       document.getElementById('bestPickPct').innerText = data.bestPick.confidence + '%';
 
-      // Populate Outcome Edges
+      document.getElementById('labelHomeProb').innerText = `${homeTeam.toUpperCase()} WIN`;
+      document.getElementById('labelAwayProb').innerText = `${awayTeam.toUpperCase()} WIN`;
+
       document.getElementById('pctHome').innerText = data.probabilities.home + '%';
       document.getElementById('barHome').style.width = data.probabilities.home + '%';
-      document.getElementById('pctDraw').innerText = data.probabilities.draw + '%';
-      document.getElementById('barDraw').style.width = data.probabilities.draw + '%';
+
+      if (data.probabilities.draw === 0) {
+        document.getElementById('drawWrapper').style.display = 'none';
+      } else {
+        document.getElementById('drawWrapper').style.display = 'block';
+        document.getElementById('pctDraw').innerText = data.probabilities.draw + '%';
+        document.getElementById('barDraw').style.width = data.probabilities.draw + '%';
+      }
+
       document.getElementById('pctAway').innerText = data.probabilities.away + '%';
       document.getElementById('barAway').style.width = data.probabilities.away + '%';
 
-      // Score Projection
       document.getElementById('scoreHome').innerText = data.projection.homeGoals;
       document.getElementById('scoreAway').innerText = data.projection.awayGoals;
 
-      // Market Board
-      document.getElementById('mktOver15').innerText = data.markets.over15 + '%';
-      document.getElementById('barOver15').style.width = data.markets.over15 + '%';
-      document.getElementById('mkt1X').innerText = data.markets.homeOrDraw + '%';
-      document.getElementById('bar1X').style.width = data.markets.homeOrDraw + '%';
-      document.getElementById('mktBtts').innerText = data.markets.btts + '%';
-      document.getElementById('barBtts').style.width = data.markets.btts + '%';
+      document.getElementById('lblMkt1').innerText = data.markets.label1;
+      document.getElementById('valMkt1').innerText = data.markets.val1 + '%';
+      document.getElementById('barMkt1').style.width = data.markets.val1 + '%';
+
+      document.getElementById('lblMkt2').innerText = data.markets.label2;
+      document.getElementById('valMkt2').innerText = data.markets.val2 + '%';
+      document.getElementById('barMkt2').style.width = data.markets.val2 + '%';
+
+      document.getElementById('lblMkt3').innerText = data.markets.label3;
+      document.getElementById('valMkt3').innerText = data.markets.val3 + '%';
+      document.getElementById('barMkt3').style.width = data.markets.val3 + '%';
 
       document.getElementById('dashboard').style.display = 'block';
       document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
