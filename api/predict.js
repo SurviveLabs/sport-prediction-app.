@@ -1,5 +1,4 @@
 export default function handler(req, res) {
-  // Disable response caching completely on Vercel
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
   if (req.method !== 'POST') {
@@ -51,34 +50,41 @@ export default function handler(req, res) {
       }
     }
   } else {
-    // High scoring sports approximation
     pHomeWin = homeXG > awayXG ? 0.65 : 0.35;
     pAwayWin = 1 - pHomeWin;
     pDraw = 0.05;
   }
 
+  // Calculate market probabilities
   const prob1X = Math.min(99, Math.round((pHomeWin + pDraw) * 100));
   const probX2 = Math.min(99, Math.round((pAwayWin + pDraw) * 100));
+  const prob12 = Math.min(99, Math.round((pHomeWin + pAwayWin) * 100));
 
-  // 3. Sport-Specific Lines and Labels
+  // Sport-Specific Lines and Labels
   let overLine = 1.5;
   let lineLabel = "Goals";
+  let bttsLabel = "Both Teams to Score (BTTS)";
 
   if (sport === 'basketball') {
     overLine = Math.floor(totalXG - 2.5) + 0.5;
     lineLabel = "Points";
+    bttsLabel = "Both Teams 100+ Points";
   } else if (sport === 'tennis' || sport === 'table_tennis') {
     overLine = 2.5;
     lineLabel = "Sets";
+    bttsLabel = "Both Win at least 1 Set";
   } else if (sport === 'ice_hockey') {
     overLine = 5.5;
     lineLabel = "Goals";
+    bttsLabel = "Both Teams to Score 2+ Goals";
   } else if (sport === 'baseball') {
     overLine = 8.5;
     lineLabel = "Runs";
+    bttsLabel = "Both Teams to Score 3+ Runs";
   } else if (sport === 'volleyball') {
     overLine = 3.5;
     lineLabel = "Sets";
+    bttsLabel = "Both Win at least 1 Set";
   }
 
   let probOver = 50;
@@ -88,25 +94,48 @@ export default function handler(req, res) {
     probOver = totalXG > overLine ? Math.min(88, Math.round(50 + (totalXG - overLine) * 8)) : 42;
   }
 
+  // BTTS / Both Win Set probability calculation
+  const pHomeScore = 1 - poisson(0, homeXG);
+  const pAwayScore = 1 - poisson(0, awayXG);
+  const probBTTS = Math.min(95, Math.round(pHomeScore * pAwayScore * 100));
+
+  // Gate filtering logic
   const requiredGate = tier === 'lower' ? 80 : 75;
-  const maxConfidence = Math.max(prob1X, probX2, probOver);
+  const allProbabilities = [prob1X, probX2, prob12, probOver, probBTTS];
+  const maxConfidence = Math.max(...allProbabilities);
   const passedFilter = maxConfidence >= requiredGate;
 
+  // 6 Expanded Markets
   const markets = [
     {
-      name: `${homeName} Moneyline / Win`,
-      probability: Math.round(pHomeWin * 100),
-      fairOdds: (100 / Math.max(1, Math.round(pHomeWin * 100))).toFixed(2)
+      name: `1X (${homeName} or Draw)`,
+      probability: prob1X,
+      fairOdds: (100 / Math.max(1, prob1X)).toFixed(2)
     },
     {
-      name: `${awayName} Moneyline / Win`,
-      probability: Math.round(pAwayWin * 100),
-      fairOdds: (100 / Math.max(1, Math.round(pAwayWin * 100))).toFixed(2)
+      name: `X2 (${awayName} or Draw)`,
+      probability: probX2,
+      fairOdds: (100 / Math.max(1, probX2)).toFixed(2)
+    },
+    {
+      name: `12 (Home or Away Win - No Draw)`,
+      probability: prob12,
+      fairOdds: (100 / Math.max(1, prob12)).toFixed(2)
     },
     {
       name: `Over ${overLine} ${lineLabel}`,
       probability: probOver,
       fairOdds: (100 / Math.max(1, probOver)).toFixed(2)
+    },
+    {
+      name: bttsLabel,
+      probability: probBTTS,
+      fairOdds: (100 / Math.max(1, probBTTS)).toFixed(2)
+    },
+    {
+      name: `${homeName} Straight Win (Moneyline)`,
+      probability: Math.round(pHomeWin * 100),
+      fairOdds: (100 / Math.max(1, Math.round(pHomeWin * 100))).toFixed(2)
     }
   ];
 
