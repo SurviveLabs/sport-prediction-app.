@@ -27,7 +27,7 @@ export default function handler(req, res) {
   let markets = [];
   let maxConfidence = 0;
 
-  // ---------------------------------------------------------
+   // ---------------------------------------------------------
   // BASKETBALL LOGIC (Zero-Draw Logistic Matrix)
   // ---------------------------------------------------------
   if (sport === 'basketball') {
@@ -38,11 +38,16 @@ export default function handler(req, res) {
     const probHomeWin = Math.min(99, Math.max(1, Math.round(pHomeWin * 100)));
     const probAwayWin = Math.min(99, Math.max(1, Math.round(pAwayWin * 100)));
 
+    // Full Game Over/Under Line
     const overLine = Math.floor(totalXG - 2.5) + 0.5;
     const probOver = totalXG > overLine ? Math.min(88, Math.round(50 + (totalXG - overLine) * 5)) : 42;
-    const probBTTS100 = (homeXG >= 100 && awayXG >= 100) ? 92 : 45;
 
-    maxConfidence = Math.max(probHomeWin, probAwayWin, probOver, probBTTS100);
+    // First Half Over/Under Line (51.5% of Full Game Total xG)
+    const halfXG = totalXG * 0.515;
+    const halfOverLine = Math.floor(halfXG - 1.5) + 0.5;
+    const probHalfOver = halfXG > halfOverLine ? Math.min(88, Math.round(50 + (halfXG - halfOverLine) * 6)) : 42;
+
+    maxConfidence = Math.max(probHomeWin, probAwayWin, probOver, probHalfOver);
 
     markets = [
       {
@@ -56,18 +61,18 @@ export default function handler(req, res) {
         fairOdds: (100 / Math.max(1, probAwayWin)).toFixed(2)
       },
       {
-        name: `Over ${overLine} Total Points`,
+        name: `Over ${overLine} Total Points (Full Game)`,
         probability: probOver,
         fairOdds: (100 / Math.max(1, probOver)).toFixed(2)
       },
       {
-        name: `Both Teams 100+ Points`,
-        probability: probBTTS100,
-        fairOdds: (100 / Math.max(1, probBTTS100)).toFixed(2)
+        name: `1st Half Over ${halfOverLine} Points`,
+        probability: probHalfOver,
+        fairOdds: (100 / Math.max(1, probHalfOver)).toFixed(2)
       }
     ];
-  } 
-  
+  }
+    
   // ---------------------------------------------------------
   // FOOTBALL LOGIC (Poisson Matrix with Draws & BTTS)
   // ---------------------------------------------------------
