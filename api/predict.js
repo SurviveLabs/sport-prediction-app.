@@ -24,24 +24,61 @@ export default function handler(req, res) {
   const homeScoreInt = Math.round(homeXG);
   const awayScoreInt = Math.round(awayXG);
 
-  // Sports without draws
-  const noDrawSports = ['basketball', 'tennis', 'table_tennis', 'volleyball', 'baseball', 'american_football', 'esports'];
-  const isNoDraw = noDrawSports.includes(sport);
+  let markets = [];
+  let maxConfidence = 0;
 
-  let pHomeWin = 0, pDraw = 0, pAwayWin = 0;
-
-  if (isNoDraw) {
-    pDraw = 0;
-    // Logistic curve for high-scoring sports
+  // ---------------------------------------------------------
+  // BASKETBALL LOGIC (Zero-Draw Logistic Matrix)
+  // ---------------------------------------------------------
+  if (sport === 'basketball') {
     const diff = homeXG - awayXG;
-    pHomeWin = 1 / (1 + Math.exp(-diff / 8)); 
-    pAwayWin = 1 - pHomeWin;
-  } else {
-    // Poisson matrix for low-scoring sports (Football, Hockey)
+    const pHomeWin = 1 / (1 + Math.exp(-diff / 8));
+    const pAwayWin = 1 - pHomeWin;
+
+    const probHomeWin = Math.min(99, Math.max(1, Math.round(pHomeWin * 100)));
+    const probAwayWin = Math.min(99, Math.max(1, Math.round(pAwayWin * 100)));
+
+    const overLine = Math.floor(totalXG - 2.5) + 0.5;
+    const probOver = totalXG > overLine ? Math.min(88, Math.round(50 + (totalXG - overLine) * 5)) : 42;
+    const probBTTS100 = (homeXG >= 100 && awayXG >= 100) ? 92 : 45;
+
+    maxConfidence = Math.max(probHomeWin, probAwayWin, probOver, probBTTS100);
+
+    markets = [
+      {
+        name: `${homeName} Moneyline (Match Winner)`,
+        probability: probHomeWin,
+        fairOdds: (100 / Math.max(1, probHomeWin)).toFixed(2)
+      },
+      {
+        name: `${awayName} Moneyline (Match Winner)`,
+        probability: probAwayWin,
+        fairOdds: (100 / Math.max(1, probAwayWin)).toFixed(2)
+      },
+      {
+        name: `Over ${overLine} Total Points`,
+        probability: probOver,
+        fairOdds: (100 / Math.max(1, probOver)).toFixed(2)
+      },
+      {
+        name: `Both Teams 100+ Points`,
+        probability: probBTTS100,
+        fairOdds: (100 / Math.max(1, probBTTS100)).toFixed(2)
+      }
+    ];
+  } 
+  
+  // ---------------------------------------------------------
+  // FOOTBALL LOGIC (Poisson Matrix with Draws & BTTS)
+  // ---------------------------------------------------------
+  else {
     function poisson(k, lambda) {
       const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
       return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
     }
+
+    let pHomeWin = 0, pDraw = 0, pAwayWin = 0;
+
     for (let h = 0; h <= 10; h++) {
       for (let a = 0; a <= 10; a++) {
         const prob = poisson(h, homeXG) * poisson(a, awayXG);
@@ -50,57 +87,48 @@ export default function handler(req, res) {
         else pAwayWin += prob;
       }
     }
+
+    const prob1X = Math.min(99, Math.round((pHomeWin + pDraw) * 100));
+    const probX2 = Math.min(99, Math.round((pAwayWin + pDraw) * 100));
+    const prob12 = Math.min(99, Math.round((pHomeWin + pAwayWin) * 100));
+
+    const probOver15 = Math.round((1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100);
+    const probBTTS = Math.min(95, Math.round((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG)) * 100));
+
+    maxConfidence = Math.max(prob1X, probX2, prob12, probOver15, probBTTS);
+
+    markets = [
+      {
+        name: `1X (${homeName} or Draw)`,
+        probability: prob1X,
+        fairOdds: (100 / Math.max(1, prob1X)).toFixed(2)
+      },
+      {
+        name: `X2 (${awayName} or Draw)`,
+        probability: probX2,
+        fairOdds: (100 / Math.max(1, probX2)).toFixed(2)
+      },
+      {
+        name: `12 (Home or Away Win - No Draw)`,
+        probability: prob12,
+        fairOdds: (100 / Math.max(1, prob12)).toFixed(2)
+      },
+      {
+        name: `Over 1.5 Goals`,
+        probability: probOver15,
+        fairOdds: (100 / Math.max(1, probOver15)).toFixed(2)
+      },
+      {
+        name: `Both Teams to Score (BTTS)`,
+        probability: probBTTS,
+        fairOdds: (100 / Math.max(1, probBTTS)).toFixed(2)
+      }
+    ];
   }
 
-  // Calculate Market Probabilities
-  const probHomeMoneyline = Math.min(99, Math.max(1, Math.round(pHomeWin * 100)));
-  const probAwayMoneyline = Math.min(99, Math.max(1, Math.round(pAwayWin * 100)));
-  
-  const prob1X = isNoDraw ? probHomeMoneyline : Math.min(99, Math.round((pHomeWin + pDraw) * 100));
-  const probX2 = isNoDraw ? probAwayMoneyline : Math.min(99, Math.round((pAwayWin + pDraw) * 100));
-  const prob12 = isNoDraw ? 100 : Math.min(99, Math.round((pHomeWin + pAwayWin) * 100));
-
-  // Dynamic Totals & BTTS
-  let overLine = 1.5;
-  let lineLabel = "Goals";
-  let bttsLabel = "Both Teams to Score (BTTS)";
-
-  if (sport === 'basketball') {
-    overLine = Math.floor(totalXG - 2.5) + 0.5;
-    lineLabel = "Points";
-    bttsLabel = "Both Teams 100+ Points";
-  }
-
-  let probOver = totalXG > overLine ? Math.min(88, Math.round(50 + (totalXG - overLine) * 5)) : 42;
-  const probBTTS = (homeXG >= 100 && awayXG >= 100) ? 92 : 45;
-
+  // Gate filtering logic
   const requiredGate = tier === 'lower' ? 80 : 75;
-  const allProbabilities = [prob1X, probX2, probOver, probBTTS];
-  const maxConfidence = Math.max(...allProbabilities);
   const passedFilter = maxConfidence >= requiredGate;
-
-  const markets = [
-    {
-      name: isNoDraw ? `${homeName} Moneyline (Match Winner)` : `1X (${homeName} or Draw)`,
-      probability: prob1X,
-      fairOdds: (100 / Math.max(1, prob1X)).toFixed(2)
-    },
-    {
-      name: isNoDraw ? `${awayName} Moneyline (Match Winner)` : `X2 (${awayName} or Draw)`,
-      probability: probX2,
-      fairOdds: (100 / Math.max(1, probX2)).toFixed(2)
-    },
-    {
-      name: `Over ${overLine} ${lineLabel}`,
-      probability: probOver,
-      fairOdds: (100 / Math.max(1, probOver)).toFixed(2)
-    },
-    {
-      name: bttsLabel,
-      probability: probBTTS,
-      fairOdds: (100 / Math.max(1, probBTTS)).toFixed(2)
-    }
-  ];
 
   return res.status(200).json({
     expectedScore: { home: homeScoreInt, away: awayScoreInt },
