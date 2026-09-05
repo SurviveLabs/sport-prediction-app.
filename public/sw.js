@@ -1,4 +1,5 @@
-// Minimal Service Worker to satisfy PWA installation criteria
+const CACHE_NAME = 'matchday-v1';
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -8,6 +9,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass all network requests through directly to preserve statelessness
-  event.respondWith(fetch(event.request));
+  // Let API calls bypass cache completely
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
 });
