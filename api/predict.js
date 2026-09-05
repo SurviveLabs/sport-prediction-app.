@@ -14,56 +14,97 @@ export default function handler(req, res) {
     awayAvgConceded
   } = req.body;
 
-  // 1. Calculate Expected Goals/Points (xG)
-  const homeXG = Math.max(0.2, (homeAvgScored + awayAvgConceded) / 2);
-  const awayXG = Math.max(0.2, (awayAvgScored + homeAvgConceded) / 2);
+  // 1. Calculate Expected Goals/Points/Sets (xG)
+  const homeXG = Math.max(0.1, (homeAvgScored + awayAvgConceded) / 2);
+  const awayXG = Math.max(0.1, (awayAvgScored + homeAvgConceded) / 2);
+  const totalXG = homeXG + awayXG;
 
-  // 2. Format Integer Scoreline
   const homeScoreInt = Math.round(homeXG);
   const awayScoreInt = Math.round(awayXG);
 
-  // 3. Simple Poisson Probability Math
+  // 2. Poisson probability helper
   function poisson(k, lambda) {
     const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
     return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
   }
 
-  let pHomeWin = 0, pDraw = 0, pAwayWin = 0;
-  for (let h = 0; h <= 6; h++) {
-    for (let a = 0; a <= 6; a++) {
-      const prob = poisson(h, homeXG) * poisson(a, awayXG);
-      if (h > a) pHomeWin += prob;
-      else if (h === a) pDraw += prob;
-      else pAwayWin += prob;
-    }
+  // Determine scoring matrix cap based on sport
+  let maxMatrix = 10;
+  if (['basketball', 'american_football', 'cricket'].includes(sport)) {
+    maxMatrix = 300;
+  } else if (['tennis', 'table_tennis', 'volleyball'].includes(sport)) {
+    maxMatrix = 5;
   }
 
-  const prob1X = Math.round((pHomeWin + pDraw) * 100);
-  const probX2 = Math.round((pAwayWin + pDraw) * 100);
-  const totalXG = homeXG + awayXG;
-  const probOver15 = Math.round((1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100);
+  // Probability calculations
+  let pHomeWin = 0, pDraw = 0, pAwayWin = 0;
 
-  // 4. Threshold Filter Gate
+  if (maxMatrix <= 10) {
+    for (let h = 0; h <= maxMatrix; h++) {
+      for (let a = 0; a <= maxMatrix; a++) {
+        const prob = poisson(h, homeXG) * poisson(a, awayXG);
+        if (h > a) pHomeWin += prob;
+        else if (h === a) pDraw += prob;
+        else pAwayWin += prob;
+      }
+    }
+  } else {
+    // High-scoring sports approximation
+    pHomeWin = homeXG > awayXG ? 0.65 : 0.35;
+    pAwayWin = 1 - pHomeWin;
+    pDraw = 0.05;
+  }
+
+  const prob1X = Math.min(99, Math.round((pHomeWin + pDraw) * 100));
+  const probX2 = Math.min(99, Math.round((pAwayWin + pDraw) * 100));
+
+  // 3. Sport-Specific Total Lines & Market Names
+  let overLine = 1.5;
+  let lineLabel = "Goals";
+
+  if (sport === 'basketball') {
+    overLine = Math.floor(totalXG - 2.5) + 0.5;
+    lineLabel = "Points";
+  } else if (sport === 'tennis' || sport === 'table_tennis') {
+    overLine = 2.5;
+    lineLabel = "Sets";
+  } else if (sport === 'ice_hockey') {
+    overLine = 5.5;
+    lineLabel = "Goals";
+  } else if (sport === 'baseball') {
+    overLine = 8.5;
+    lineLabel = "Runs";
+  } else if (sport === 'volleyball') {
+    overLine = 3.5;
+    lineLabel = "Sets";
+  }
+
+  let probOver = 50;
+  if (lineLabel === "Goals" && overLine === 1.5) {
+    probOver = Math.round((1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100);
+  } else {
+    probOver = totalXG > overLine ? Math.min(88, Math.round(50 + (totalXG - overLine) * 8)) : 42;
+  }
+
   const requiredGate = tier === 'lower' ? 80 : 75;
-  const maxConfidence = Math.max(prob1X, probX2, probOver15);
+  const maxConfidence = Math.max(prob1X, probX2, probOver);
   const passedFilter = maxConfidence >= requiredGate;
 
-  // 5. Market Selections
   const markets = [
     {
-      name: `${homeName} or Draw (1X)`,
-      probability: prob1X,
-      fairOdds: (100 / Math.max(1, prob1X)).toFixed(2)
+      name: `${homeName} Moneyline / Win`,
+      probability: Math.round(pHomeWin * 100),
+      fairOdds: (100 / Math.max(1, Math.round(pHomeWin * 100))).toFixed(2)
     },
     {
-      name: `${awayName} or Draw (X2)`,
-      probability: probX2,
-      fairOdds: (100 / Math.max(1, probX2)).toFixed(2)
+      name: `${awayName} Moneyline / Win`,
+      probability: Math.round(pAwayWin * 100),
+      fairOdds: (100 / Math.max(1, Math.round(pAwayWin * 100))).toFixed(2)
     },
     {
-      name: 'Over 1.5 Goals/Points',
-      probability: probOver15,
-      fairOdds: (100 / Math.max(1, probOver15)).toFixed(2)
+      name: `Over ${overLine} ${lineLabel}`,
+      probability: probOver,
+      fairOdds: (100 / Math.max(1, probOver)).toFixed(2)
     }
   ];
 
