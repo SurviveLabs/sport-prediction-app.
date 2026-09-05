@@ -1,6 +1,7 @@
 {
-  "name": "MATCHDAY",
+  "name": "MATCHDAY Engine",
   "short_name": "MATCHDAY",
+  "description": "Stateless Sports Prediction PWA",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
