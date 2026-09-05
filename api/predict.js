@@ -13,22 +13,61 @@ export default function handler(req, res) {
     homeAvgScored,
     homeAvgConceded,
     awayAvgScored,
-    awayAvgConceded
+    awayAvgConceded,
+    leagueAvgScored // Optional league baseline input (defaults applied if omitted)
   } = req.body;
 
-  // 1. Calculate Expected Scores
-  const homeXG = Math.max(0.1, (homeAvgScored + awayAvgConceded) / 2);
-  const awayXG = Math.max(0.1, (awayAvgScored + homeAvgConceded) / 2);
-  const totalXG = homeXG + awayXG;
+  // ---------------------------------------------------------
+  // 1. LEAGUE BASELINE & HOME ADVANTAGE ADJUSTMENTS
+  // ---------------------------------------------------------
+  let homeXG = 0;
+  let awayXG = 0;
 
+  if (sport === 'basketball') {
+    // Basketball League Average baseline (~105 pts per team)
+    const baseLeagueAvg = leagueAvgScored || 105.0;
+    
+    // Attack and Defense Ratings relative to League Average
+    const homeAttack = homeAvgScored / baseLeagueAvg;
+    const homeDefense = homeAvgConceded / baseLeagueAvg;
+    const awayAttack = awayAvgScored / baseLeagueAvg;
+    const awayDefense = awayAvgConceded / baseLeagueAvg;
+
+    // Expected Base Points
+    let rawHome = homeAttack * awayDefense * baseLeagueAvg;
+    let rawAway = awayAttack * homeDefense * baseLeagueAvg;
+
+    // +3.0 Points Home-Court Advantage
+    homeXG = Math.max(50, rawHome + 3.0);
+    awayXG = Math.max(50, rawAway - 3.0);
+  } else {
+    // Football League Average baseline (~1.35 goals per team)
+    const baseLeagueAvg = leagueAvgScored || 1.35;
+
+    // Attack and Defense Ratings
+    const homeAttack = homeAvgScored / baseLeagueAvg;
+    const homeDefense = homeAvgConceded / baseLeagueAvg;
+    const awayAttack = awayAvgScored / baseLeagueAvg;
+    const awayDefense = awayAvgConceded / baseLeagueAvg;
+
+    // Expected Base Goals
+    let rawHome = homeAttack * awayDefense * baseLeagueAvg;
+    let rawAway = awayAttack * homeDefense * baseLeagueAvg;
+
+    // +0.25 Goals Home-Field Advantage
+    homeXG = Math.max(0.1, rawHome + 0.25);
+    awayXG = Math.max(0.1, rawAway - 0.25);
+  }
+
+  const totalXG = homeXG + awayXG;
   const homeScoreInt = Math.round(homeXG);
   const awayScoreInt = Math.round(awayXG);
 
   let markets = [];
   let maxConfidence = 0;
 
-   // ---------------------------------------------------------
-  // BASKETBALL LOGIC (Zero-Draw Logistic Matrix)
+  // ---------------------------------------------------------
+  // 2. BASKETBALL LOGIC (Zero-Draw Logistic Matrix)
   // ---------------------------------------------------------
   if (sport === 'basketball') {
     const diff = homeXG - awayXG;
@@ -38,11 +77,11 @@ export default function handler(req, res) {
     const probHomeWin = Math.min(99, Math.max(1, Math.round(pHomeWin * 100)));
     const probAwayWin = Math.min(99, Math.max(1, Math.round(pAwayWin * 100)));
 
-    // Full Game Over/Under Line
+    // Full Game Over/Under
     const overLine = Math.floor(totalXG - 2.5) + 0.5;
     const probOver = totalXG > overLine ? Math.min(88, Math.round(50 + (totalXG - overLine) * 5)) : 42;
 
-    // First Half Over/Under Line (51.5% of Full Game Total xG)
+    // 1st Half Over/Under (51.5% of Full Game Total)
     const halfXG = totalXG * 0.515;
     const halfOverLine = Math.floor(halfXG - 1.5) + 0.5;
     const probHalfOver = halfXG > halfOverLine ? Math.min(88, Math.round(50 + (halfXG - halfOverLine) * 6)) : 42;
@@ -71,10 +110,10 @@ export default function handler(req, res) {
         fairOdds: (100 / Math.max(1, probHalfOver)).toFixed(2)
       }
     ];
-  }
-    
+  } 
+
   // ---------------------------------------------------------
-  // FOOTBALL LOGIC (Poisson Matrix with Draws & BTTS)
+  // 3. FOOTBALL LOGIC (Dixon-Coles Poisson Adjustment)
   // ---------------------------------------------------------
   else {
     function poisson(k, lambda) {
@@ -82,11 +121,23 @@ export default function handler(req, res) {
       return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
     }
 
+    // Dixon-Coles Tau Adjustment factor for low-scoring matches
+    function dixonColesTau(h, a, lambdaH, lambdaA, rho = -0.13) {
+      if (h === 0 && a === 0) return 1 - (lambdaH * lambdaA * rho);
+      if (h === 1 && a === 0) return 1 + (lambdaA * rho);
+      if (h === 0 && a === 1) return 1 + (lambdaH * rho);
+      if (h === 1 && a === 1) return 1 - rho;
+      return 1.0;
+    }
+
     let pHomeWin = 0, pDraw = 0, pAwayWin = 0;
 
     for (let h = 0; h <= 10; h++) {
       for (let a = 0; a <= 10; a++) {
-        const prob = poisson(h, homeXG) * poisson(a, awayXG);
+        const rawProb = poisson(h, homeXG) * poisson(a, awayXG);
+        const tau = dixonColesTau(h, a, homeXG, awayXG);
+        const prob = rawProb * tau;
+
         if (h > a) pHomeWin += prob;
         else if (h === a) pDraw += prob;
         else pAwayWin += prob;
