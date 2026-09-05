@@ -1,364 +1,262 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MATCHDAY | Full Market Engine</title>
-
-  <!-- PWA Manifest & Meta Tags -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#ccff00">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="icon" type="image/png" href="https://img.icons8.com/color/192/football.png">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MATCHDAY - Sports Prediction Engine</title>
   <style>
-    :root[data-theme="dark"] {
-      --bg-color: #0b0f17;
-      --card-bg: #131b2e;
-      --input-bg: #1a243b;
-      --text-color: #f1f5f9;
-      --text-dim: #94a3b8;
-      --border-color: #1e293b;
-      --accent-lime: #ccff00;
-      --accent-dark: #0f172a;
-      --accent-blue: #38bdf8;
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #2563eb;
+      --green: #16a34a;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
     }
-    :root[data-theme="light"] {
-      --bg-color: #f8fafc;
-      --card-bg: #ffffff;
-      --input-bg: #f1f5f9;
-      --text-color: #0f172a;
-      --text-dim: #64748b;
-      --border-color: #e2e8f0;
-      --accent-lime: #84cc16;
-      --accent-dark: #0f172a;
-      --accent-blue: #0284c7;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
+      margin: 0;
       padding: 16px;
-      transition: background-color 0.3s, color 0.3s;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
     }
-    .container { max-width: 480px; margin: 0 auto; }
-
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .brand { font-weight: 800; font-size: 0.9rem; letter-spacing: 1px; }
-    .brand span { font-weight: 400; color: var(--text-dim); }
-    .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
-
-    .hero-title { font-size: 2rem; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
-    .hero-sub { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px; line-height: 1.4; }
-
-    .sport-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 20px; -webkit-overflow-scrolling: touch; }
-    .sport-tabs::-webkit-scrollbar { display: none; }
-    .tab-btn { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-dim); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
-    .tab-btn.active { background: var(--accent-lime); color: var(--accent-dark); font-weight: 600; border-color: var(--accent-lime); }
-
-    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
-    .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-blue); }
-
-    .input-group { margin-bottom: 14px; }
-    .input-group label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .input-group input, .input-group select { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 0.9rem; }
-
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    .analyze-btn { width: 100%; padding: 14px; background: var(--accent-lime); color: var(--accent-dark); border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
-
-    #dashboard { display: none; }
-    .best-pick-card { background: var(--accent-lime); color: var(--accent-dark); padding: 20px; border-radius: 16px; margin-bottom: 16px; position: relative; transition: all 0.3s; }
-    .best-pick-card.no-bet { background: #334155; color: #f8fafc; border: 1px solid #475569; }
-    .best-pick-badge { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; opacity: 0.9; }
-    .best-pick-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; padding-right: 60px; word-break: break-word; }
-    .best-pick-desc { font-size: 0.8rem; opacity: 0.9; }
-    .best-pick-pct { position: absolute; top: 20px; right: 20px; font-size: 1.8rem; font-weight: 900; }
-
-    .bar-wrapper { margin-bottom: 12px; }
-    .bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-dim); }
-    .bar-track { height: 8px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; background: var(--accent-lime); }
-    .fill-blue { background: var(--accent-blue); }
-
-    .score-display { display: flex; justify-content: center; align-items: center; gap: 16px; font-size: 2rem; font-weight: 800; margin: 10px 0; }
-    .tier-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--input-bg); color: var(--accent-blue); font-weight: 700; text-transform: uppercase; }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin: 10px 0 4px;
+    }
+    select, input {
+      width: 100%;
+      padding: 10px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover { opacity: 0.9; }
+    .quick-box {
+      font-size: 12px;
+      color: #38bdf8;
+      margin-top: 2px;
+    }
+    .output-box {
+      display: none;
+      margin-top: 20px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      background: var(--green);
+    }
+    .scoreline {
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+      margin: 10px 0;
+    }
+    .market-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="top-bar">
-      <div class="brand">MATCHDAY <span>/ FULL ENGINE</span></div>
-      <button class="theme-toggle" id="themeBtn">☀️ / 🌙</button>
-    </div>
+<div class="container">
+  <h1>MATCHDAY</h1>
 
-    <h1 class="hero-title">Read the game<br>before it happens.</h1>
-    <p class="hero-sub">Select your sport to generate standard markets, goals/points lines, and combo probabilities.</p>
+  <div class="card">
+    <label for="sportSelect">Sport</label>
+    <select id="sportSelect">
+      <option value="football">Football</option>
+      <option value="basketball">Basketball</option>
+      <option value="ice_hockey">Ice Hockey</option>
+      <option value="tennis">Tennis</option>
+      <option value="table_tennis">Table Tennis</option>
+      <option value="volleyball">Volleyball</option>
+      <option value="baseball">Baseball</option>
+      <option value="american_football">American Football</option>
+      <option value="cricket">Cricket</option>
+      <option value="esports">Esports</option>
+    </select>
 
-    <div class="sport-tabs">
-      <button class="tab-btn active" onclick="selectSport('football', this)">Football</button>
-      <button class="tab-btn" onclick="selectSport('basketball', this)">Basketball</button>
-      <button class="tab-btn" onclick="selectSport('ice_hockey', this)">Ice Hockey</button>
-      <button class="tab-btn" onclick="selectSport('tennis', this)">Tennis</button>
-      <button class="tab-btn" onclick="selectSport('table_tennis', this)">Table Tennis</button>
-      <button class="tab-btn" onclick="selectSport('american_football', this)">American Football</button>
-      <button class="tab-btn" onclick="selectSport('cricket', this)">Cricket</button>
-      <button class="tab-btn" onclick="selectSport('baseball', this)">Baseball</button>
-      <button class="tab-btn" onclick="selectSport('volleyball', this)">Volleyball</button>
-      <button class="tab-btn" onclick="selectSport('esports', this)">Esports</button>
-    </div>
+    <label for="tierSelect">League Tier Level</label>
+    <select id="tierSelect">
+      <option value="major">Major Tier (75% Gate)</option>
+      <option value="lower">Lower / Regional Tier (80% Gate)</option>
+    </select>
 
-    <div class="card">
-      <div class="card-title" id="cardHeader">Set Football Fixture</div>
-
-      <div class="input-group">
-        <label id="lblLeagueTier">League Tier Level <span class="tier-tag" id="tierTag">75% Auto Threshold</span></label>
-        <select id="leagueTier" onchange="updateTierTag()">
-          <option value="major" selected>Major Tier (Auto 75% Threshold)</option>
-          <option value="lower">Lower / Regional League (Auto 80% Threshold)</option>
-        </select>
+    <div class="grid">
+      <div>
+        <label>Home Team / Player</label>
+        <input type="text" id="homeName" placeholder="e.g. Arsenal" />
       </div>
-
-      <div class="grid-2">
-        <div class="input-group">
-          <label id="lblHomeTeam">Home Name</label>
-          <input type="text" id="homeTeam" value="Arsenal">
-        </div>
-        <div class="input-group">
-          <label id="lblAwayTeam">Away Name</label>
-          <input type="text" id="awayTeam" value="Chelsea">
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="input-group">
-          <label id="lblHomeAvg">Home Scored Avg</label>
-          <input type="number" id="homeAvg" step="0.01" value="2.10">
-        </div>
-        <div class="input-group">
-          <label id="lblHomeCon">Home Conceded Avg</label>
-          <input type="number" id="homeConceded" step="0.01" value="0.85">
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="input-group">
-          <label id="lblAwayAvg">Away Scored Avg</label>
-          <input type="number" id="awayAvg" step="0.01" value="1.45">
-        </div>
-        <div class="input-group">
-          <label id="lblAwayCon">Away Conceded Avg</label>
-          <input type="number" id="awayConceded" step="0.01" value="1.30">
-        </div>
-      </div>
-
-      <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze All Markets →</button>
-    </div>
-
-    <div id="dashboard">
-      <div class="best-pick-card" id="bestPickCard">
-        <div class="best-pick-badge" id="bestPickBadge">⚡ Passed Auto Filter</div>
-        <div class="best-pick-title" id="bestPickTitle">ARSENAL WIN OR DRAW</div>
-        <div class="best-pick-desc" id="bestPickDesc">Highest confidence edge found across all markets.</div>
-        <div class="best-pick-pct" id="bestPickPct">83%</div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Expected Score Line</div>
-        <div class="score-display">
-          <span id="scoreHome">2</span> - <span id="scoreAway">1</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">1. Straight / Match Winners</div>
-        <div id="stdContainer"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">2. Combo Markets (Winner + Lines)</div>
-        <div id="comboContainer"></div>
+      <div>
+        <label>Away Team / Player</label>
+        <input type="text" id="awayName" placeholder="e.g. Chelsea" />
       </div>
     </div>
 
+    <!-- Quick Parser Section -->
+    <label>Home Past 5 Results (Quick Fill)</label>
+    <input type="text" id="homePastScores" placeholder="e.g. 2-1, 1-0, 3-1, 0-0, 2-0" oninput="parseHomeScores()" />
+    <div class="quick-box" id="homeParsedStats">Auto-calculated: 0.00 Scored / 0.00 Conceded</div>
+
+    <label>Away Past 5 Results (Quick Fill)</label>
+    <input type="text" id="awayPastScores" placeholder="e.g. 0-2, 1-1, 0-1, 2-2, 1-3" oninput="parseAwayScores()" />
+    <div class="quick-box" id="awayParsedStats">Auto-calculated: 0.00 Scored / 0.00 Conceded</div>
+
+    <!-- Hidden numeric inputs (Populated automatically or manually) -->
+    <div class="grid" style="display:none;">
+      <input type="number" step="0.01" id="homeAvgScored" value="1.0" />
+      <input type="number" step="0.01" id="homeAvgConceded" value="1.0" />
+      <input type="number" step="0.01" id="awayAvgScored" value="1.0" />
+      <input type="number" step="0.01" id="awayAvgConceded" value="1.0" />
+    </div>
+
+    <button onclick="runPrediction()">ANALYZE ALL MARKETS</button>
   </div>
 
-  <script>
-    let currentSport = 'football';
+  <!-- Output Display Card -->
+  <div class="card output-box" id="resultsCard">
+    <div style="text-align: center;">
+      <span class="badge" id="passBadge">PASSED FILTER</span>
+    </div>
+    <div class="scoreline" id="expectedScore">2 - 1</div>
+    <div id="marketsContainer"></div>
+  </div>
+</div>
 
-    const sportConfigs = {
-      football: {
-        header: 'Set Football Fixture', btn: 'Analyze Football →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home Scored Avg', l2: 'Home Conceded Avg', l3: 'Away Scored Avg', l4: 'Away Conceded Avg',
-        d1: '2.10', d2: '0.85', d3: '1.45', d4: '1.30', t1: 'Arsenal', t2: 'Chelsea'
-      },
-      basketball: {
-        header: 'Set Basketball Fixture', btn: 'Analyze Basketball →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home PPG', l2: 'Home Opp PPG', l3: 'Away PPG', l4: 'Away Opp PPG',
-        d1: '118.5', d2: '108.2', d3: '112.4', d4: '114.0', t1: 'Boston Celtics', t2: 'LA Lakers'
-      },
-      ice_hockey: {
-        header: 'Set Hockey Fixture', btn: 'Analyze Ice Hockey →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home Goals/G', l2: 'Home Conceded/G', l3: 'Away Goals/G', l4: 'Away Conceded/G',
-        d1: '3.40', d2: '2.40', d3: '2.90', d4: '3.10', t1: 'Florida Panthers', t2: 'NY Rangers'
-      },
-      tennis: {
-        header: 'Set Tennis Match', btn: 'Analyze Tennis →',
-        p1: 'Player 1', p2: 'Player 2',
-        l1: 'P1 Hold %', l2: 'P1 Break %', l3: 'P2 Hold %', l4: 'P2 Break %',
-        d1: '88.0', d2: '26.0', d3: '82.0', d4: '22.0', t1: 'Jannik Sinner', t2: 'Carlos Alcaraz'
-      },
-      table_tennis: {
-        header: 'Set Table Tennis Match', btn: 'Analyze Table Tennis →',
-        p1: 'Player 1', p2: 'Player 2',
-        l1: 'P1 Win Rate %', l2: 'P1 Avg Pts/Set', l3: 'P2 Win Rate %', l4: 'P2 Avg Pts/Set',
-        d1: '75.0', d2: '10.2', d3: '62.0', d4: '9.4', t1: 'Fan Zhendong', t2: 'Ma Long'
-      },
-      american_football: {
-        header: 'Set NFL Fixture', btn: 'Analyze American Football →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home Off PPG', l2: 'Home Def Allowed', l3: 'Away Off PPG', l4: 'Away Def Allowed',
-        d1: '27.5', d2: '18.2', d3: '21.4', d4: '24.0', t1: 'Kansas City Chiefs', t2: 'SF 49ers'
-      },
-      cricket: {
-        header: 'Set Cricket Match', btn: 'Analyze Cricket →',
-        p1: 'Team 1', p2: 'Team 2',
-        l1: 'T1 Innings Runs', l2: 'T1 Econ Rating', l3: 'T2 Innings Runs', l4: 'T2 Econ Rating',
-        d1: '175.0', d2: '7.5', d3: '162.0', d4: '8.2', t1: 'India', t2: 'Australia'
-      },
-      baseball: {
-        header: 'Set MLB Game', btn: 'Analyze Baseball →',
-        p1: 'Home Team', p2: 'Away Team',
-        l1: 'Home Runs/Game', l2: 'Home ERA Conceded', l3: 'Away Runs/Game', l4: 'Away ERA Conceded',
-        d1: '5.20', d2: '3.80', d3: '4.10', d4: '4.60', t1: 'LA Dodgers', t2: 'NY Yankees'
-      },
-      volleyball: {
-        header: 'Set Volleyball Match', btn: 'Analyze Volleyball →',
-        p1: 'Team 1', p2: 'Team 2',
-        l1: 'T1 Set Win %', l2: 'T1 Pts/Set Avg', l3: 'T2 Set Win %', l4: 'T2 Pts/Set Avg',
-        d1: '68.0', d2: '24.5', d3: '52.0', d4: '21.8', t1: 'Poland', t2: 'Italy'
-      },
-      esports: {
-        header: 'Set Esports Match', btn: 'Analyze Esports →',
-        p1: 'Team 1', p2: 'Team 2',
-        l1: 'T1 Map Win %', l2: 'T1 Round Win %', l3: 'T2 Map Win %', l4: 'T2 Round Win %',
-        d1: '65.0', d2: '54.5', d3: '48.0', d4: '47.2', t1: 'FaZe Clan', t2: 'Natus Vincere'
+<script>
+  // Parsing logic for quick past results string
+  function calculateAverages(scoreString) {
+    const matches = scoreString.split(',').map(s => s.trim());
+    let totalScored = 0;
+    let totalConceded = 0;
+    let count = 0;
+
+    matches.forEach(m => {
+      const parts = m.split('-').map(n => parseFloat(n.trim()));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        totalScored += parts[0];
+        totalConceded += parts[1];
+        count++;
       }
-    };
-
-    function updateTierTag() {
-      const val = document.getElementById('leagueTier').value;
-      const tag = document.getElementById('tierTag');
-      tag.innerText = val === 'lower' ? '80% Auto Threshold' : '75% Auto Threshold';
-      tag.style.color = val === 'lower' ? 'var(--accent-lime)' : 'var(--accent-blue)';
-    }
-
-    function selectSport(sport, btn) {
-      currentSport = sport;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      const cfg = sportConfigs[sport];
-      document.getElementById('cardHeader').innerText = cfg.header;
-      document.getElementById('analyzeBtn').innerText = cfg.btn;
-
-      document.getElementById('lblHomeTeam').innerText = cfg.p1;
-      document.getElementById('lblAwayTeam').innerText = cfg.p2;
-      document.getElementById('homeTeam').value = cfg.t1;
-      document.getElementById('awayTeam').value = cfg.t2;
-
-      document.getElementById('lblHomeAvg').innerText = cfg.l1;
-      document.getElementById('lblHomeCon').innerText = cfg.l2;
-      document.getElementById('lblAwayAvg').innerText = cfg.l3;
-      document.getElementById('lblAwayCon').innerText = cfg.l4;
-
-      document.getElementById('homeAvg').value = cfg.d1;
-      document.getElementById('homeConceded').value = cfg.d2;
-      document.getElementById('awayAvg').value = cfg.d3;
-      document.getElementById('awayConceded').value = cfg.d4;
-
-      document.getElementById('dashboard').style.display = 'none';
-    }
-
-    document.getElementById('themeBtn').addEventListener('click', () => {
-      const html = document.documentElement;
-      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     });
 
-    async function runAnalysis() {
-      const homeTeam = document.getElementById('homeTeam').value || 'Home';
-      const awayTeam = document.getElementById('awayTeam').value || 'Away';
-      const homeAvg = document.getElementById('homeAvg').value;
-      const homeConceded = document.getElementById('homeConceded').value;
-      const awayAvg = document.getElementById('awayAvg').value;
-      const awayConceded = document.getElementById('awayConceded').value;
-      const leagueTier = document.getElementById('leagueTier').value;
+    if (count === 0) return { scored: 1.0, conceded: 1.0 };
+    return {
+      scored: parseFloat((totalScored / count).toFixed(2)),
+      conceded: parseFloat((totalConceded / count).toFixed(2))
+    };
+  }
 
+  function parseHomeScores() {
+    const val = document.getElementById('homePastScores').value;
+    const stats = calculateAverages(val);
+    document.getElementById('homeAvgScored').value = stats.scored;
+    document.getElementById('homeAvgConceded').value = stats.conceded;
+    document.getElementById('homeParsedStats').innerText = `Auto-calculated: ${stats.scored} Scored / ${stats.conceded} Conceded`;
+  }
+
+  function parseAwayScores() {
+    const val = document.getElementById('awayPastScores').value;
+    const stats = calculateAverages(val);
+    document.getElementById('awayAvgScored').value = stats.scored;
+    document.getElementById('awayAvgConceded').value = stats.conceded;
+    document.getElementById('awayParsedStats').innerText = `Auto-calculated: ${stats.scored} Scored / ${stats.conceded} Conceded`;
+  }
+
+  async function runPrediction() {
+    const payload = {
+      sport: document.getElementById('sportSelect').value,
+      tier: document.getElementById('tierSelect').value,
+      homeName: document.getElementById('homeName').value || 'Home',
+      awayName: document.getElementById('awayName').value || 'Away',
+      homeAvgScored: parseFloat(document.getElementById('homeAvgScored').value),
+      homeAvgConceded: parseFloat(document.getElementById('homeAvgConceded').value),
+      awayAvgScored: parseFloat(document.getElementById('awayAvgScored').value),
+      awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value)
+    };
+
+    try {
       const res = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          sport: currentSport, homeTeam, awayTeam, 
-          homeAvg, homeConceded, awayAvg, awayConceded, leagueTier
-        })
+        body: JSON.stringify(payload)
       });
-
       const data = await res.json();
 
-      const card = document.getElementById('bestPickCard');
-      const badge = document.getElementById('bestPickBadge');
-
-      if (data.bestPick.passedFilter) {
-        card.classList.remove('no-bet');
-        badge.innerText = `⚡ PASSED ${data.autoThreshold}% AUTO FILTER`;
+      // Render expected score as clean integers
+      document.getElementById('expectedScore').innerText = `${data.expectedScore.home} - ${data.expectedScore.away}`;
+      
+      const badge = document.getElementById('passBadge');
+      if (data.passedFilter) {
+        badge.innerText = 'PASSED FILTER';
+        badge.style.background = 'var(--green)';
       } else {
-        card.classList.add('no-bet');
-        badge.innerText = `⚠️ BELOW ${data.autoThreshold}% AUTO THRESHOLD - NO BET / PASS`;
+        badge.innerText = 'HIGH VARIANCE - SKIP';
+        badge.style.background = '#dc2626';
       }
 
-      document.getElementById('bestPickTitle').innerText = data.bestPick.title;
-      document.getElementById('bestPickDesc').innerText = data.bestPick.desc;
-      document.getElementById('bestPickPct').innerText = data.bestPick.confidence + '%';
-
-      document.getElementById('scoreHome').innerText = data.projection.homeGoals;
-      document.getElementById('scoreAway').innerText = data.projection.awayGoals;
-
-      const stdContainer = document.getElementById('stdContainer');
-      stdContainer.innerHTML = data.stdMarkets.map(item => `
-        <div class="bar-wrapper">
-          <div class="bar-label"><span>${item.label}</span><span>${item.val}%</span></div>
-          <div class="bar-track"><div class="bar-fill fill-blue" style="width: ${item.val}%;"></div></div>
-        </div>
-      `).join('');
-
-      const comboContainer = document.getElementById('comboContainer');
-      comboContainer.innerHTML = data.comboMarkets.map(item => `
-        <div class="bar-wrapper">
-          <div class="bar-label"><span>${item.label}</span><span>${item.val}%</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width: ${item.val}%;"></div></div>
-        </div>
-      `).join('');
-
-      document.getElementById('dashboard').style.display = 'block';
-      document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Register Static Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' })
-          .then(reg => console.log('SW Registered Successfully'))
-          .catch(err => console.error('SW Registration Failed', err));
+      // Render markets
+      const container = document.getElementById('marketsContainer');
+      container.innerHTML = '';
+      data.markets.forEach(m => {
+        const row = document.createElement('div');
+        row.className = 'market-row';
+        row.innerHTML = `<span><strong>${m.name}</strong></span><span>${m.probability}% (Odds ~${m.fairOdds})</span>`;
+        container.appendChild(row);
       });
+
+      document.getElementById('resultsCard').style.display = 'block';
+    } catch (err) {
+      alert('Error fetching prediction. Please check inputs.');
     }
-  </script>
+  }
+</script>
 </body>
 </html>
