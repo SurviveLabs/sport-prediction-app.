@@ -3,19 +3,23 @@
   "short_name": "MATCHDAY",
   "description": "Stateless Sports Prediction PWA",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192/2563eb/ffffff?text=M",
+      "src": "https://dummyimage.com/192x192/2563eb/ffffff.png&text=M",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://via.placeholder.com/512/2563eb/ffffff?text=MATCHDAY",
+      "src": "https://dummyimage.com/512x512/2563eb/ffffff.png&text=MATCHDAY",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
