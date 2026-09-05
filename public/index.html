@@ -68,13 +68,14 @@
       font-weight: bold;
       font-size: 16px;
       cursor: pointer;
-      margin-top: 10px;
+      margin-top: 16px;
     }
     button:hover { opacity: 0.9; }
     .quick-box {
       font-size: 12px;
       color: #38bdf8;
-      margin-top: 2px;
+      margin-top: 8px;
+      text-align: center;
     }
     .output-box {
       display: none;
@@ -131,31 +132,52 @@
 
     <div class="grid">
       <div>
-        <label>Home Team / Player</label>
+        <label for="homeName">Home Team / Player</label>
         <input type="text" id="homeName" placeholder="e.g. Arsenal" />
       </div>
       <div>
-        <label>Away Team / Player</label>
+        <label for="awayName">Away Team / Player</label>
         <input type="text" id="awayName" placeholder="e.g. Chelsea" />
       </div>
     </div>
 
-    <!-- Quick Parser Section -->
-    <label>Home Past 5 Results (Quick Fill)</label>
-    <input type="text" id="homePastScores" placeholder="e.g. 2-1, 1-0, 3-1, 0-0, 2-0" oninput="parseHomeScores()" />
-    <div class="quick-box" id="homeParsedStats">Auto-calculated: 0.00 Scored / 0.00 Conceded</div>
-
-    <label>Away Past 5 Results (Quick Fill)</label>
-    <input type="text" id="awayPastScores" placeholder="e.g. 0-2, 1-1, 0-1, 2-2, 1-3" oninput="parseAwayScores()" />
-    <div class="quick-box" id="awayParsedStats">Auto-calculated: 0.00 Scored / 0.00 Conceded</div>
-
-    <!-- Hidden numeric inputs (Populated automatically or manually) -->
-    <div class="grid" style="display:none;">
-      <input type="number" step="0.01" id="homeAvgScored" value="1.0" />
-      <input type="number" step="0.01" id="homeAvgConceded" value="1.0" />
-      <input type="number" step="0.01" id="awayAvgScored" value="1.0" />
-      <input type="number" step="0.01" id="awayAvgConceded" value="1.0" />
+    <!-- Home Team Totals -->
+    <div class="grid" style="margin-top: 10px;">
+      <div>
+        <label for="homeTotalScored">Home Total Scored</label>
+        <input type="number" id="homeTotalScored" placeholder="e.g. 540 or 10" oninput="updateAverages()" />
+      </div>
+      <div>
+        <label for="homeTotalConceded">Home Total Conceded</label>
+        <input type="number" id="homeTotalConceded" placeholder="e.g. 510 or 4" oninput="updateAverages()" />
+      </div>
     </div>
+
+    <!-- Away Team Totals -->
+    <div class="grid" style="margin-top: 10px;">
+      <div>
+        <label for="awayTotalScored">Away Total Scored</label>
+        <input type="number" id="awayTotalScored" placeholder="e.g. 520 or 12" oninput="updateAverages()" />
+      </div>
+      <div>
+        <label for="awayTotalConceded">Away Total Conceded</label>
+        <input type="number" id="awayTotalConceded" placeholder="e.g. 490 or 8" oninput="updateAverages()" />
+      </div>
+    </div>
+
+    <label for="gamesCount">Number of Games Played</label>
+    <input type="number" id="gamesCount" value="5" oninput="updateAverages()" />
+
+    <!-- Real-Time Calculated Average Display -->
+    <div class="quick-box" id="calculatedAveragesDisplay">
+      Home: 0.00 Scored / 0.00 Conceded | Away: 0.00 Scored / 0.00 Conceded
+    </div>
+
+    <!-- Hidden values passed to API -->
+    <input type="hidden" id="homeAvgScored" value="0" />
+    <input type="hidden" id="homeAvgConceded" value="0" />
+    <input type="hidden" id="awayAvgScored" value="0" />
+    <input type="hidden" id="awayAvgConceded" value="0" />
 
     <button onclick="runPrediction()">ANALYZE ALL MARKETS</button>
   </div>
@@ -165,48 +187,32 @@
     <div style="text-align: center;">
       <span class="badge" id="passBadge">PASSED FILTER</span>
     </div>
-    <div class="scoreline" id="expectedScore">2 - 1</div>
+    <div class="scoreline" id="expectedScore">0 - 0</div>
     <div id="marketsContainer"></div>
   </div>
 </div>
 
-  <script>
-  function calculateAverages(scoreString) {
-    const matches = scoreString.split(',').map(s => s.trim());
-    let totalScored = 0;
-    let totalConceded = 0;
-    let count = 0;
+<script>
+  function updateAverages() {
+    const games = parseFloat(document.getElementById('gamesCount').value) || 1;
+    
+    const hScored = parseFloat(document.getElementById('homeTotalScored').value) || 0;
+    const hConceded = parseFloat(document.getElementById('homeTotalConceded').value) || 0;
+    const aScored = parseFloat(document.getElementById('awayTotalScored').value) || 0;
+    const aConceded = parseFloat(document.getElementById('awayTotalConceded').value) || 0;
 
-    matches.forEach(m => {
-      const parts = m.split('-').map(n => parseFloat(n.trim()));
-      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-        totalScored += parts[0];
-        totalConceded += parts[1];
-        count++;
-      }
-    });
+    const hAvgS = (hScored / games).toFixed(2);
+    const hAvgC = (hConceded / games).toFixed(2);
+    const aAvgS = (aScored / games).toFixed(2);
+    const aAvgC = (aConceded / games).toFixed(2);
 
-    if (count === 0) return { scored: 1.0, conceded: 1.0 };
-    return {
-      scored: parseFloat((totalScored / count).toFixed(2)),
-      conceded: parseFloat((totalConceded / count).toFixed(2))
-    };
-  }
+    document.getElementById('homeAvgScored').value = hAvgS;
+    document.getElementById('homeAvgConceded').value = hAvgC;
+    document.getElementById('awayAvgScored').value = aAvgS;
+    document.getElementById('awayAvgConceded').value = aAvgC;
 
-  function parseHomeScores() {
-    const val = document.getElementById('homePastScores').value;
-    const stats = calculateAverages(val);
-    document.getElementById('homeAvgScored').value = stats.scored;
-    document.getElementById('homeAvgConceded').value = stats.conceded;
-    document.getElementById('homeParsedStats').innerText = `Auto-calculated: ${stats.scored} Scored / ${stats.conceded} Conceded`;
-  }
-
-  function parseAwayScores() {
-    const val = document.getElementById('awayPastScores').value;
-    const stats = calculateAverages(val);
-    document.getElementById('awayAvgScored').value = stats.scored;
-    document.getElementById('awayAvgConceded').value = stats.conceded;
-    document.getElementById('awayParsedStats').innerText = `Auto-calculated: ${stats.scored} Scored / ${stats.conceded} Conceded`;
+    document.getElementById('calculatedAveragesDisplay').innerText = 
+      `Home: ${hAvgS} Scored / ${hAvgC} Conceded | Away: ${aAvgS} Scored / ${aAvgC} Conceded`;
   }
 
   async function runPrediction() {
@@ -215,14 +221,13 @@
       tier: document.getElementById('tierSelect').value,
       homeName: document.getElementById('homeName').value || 'Home',
       awayName: document.getElementById('awayName').value || 'Away',
-      homeAvgScored: parseFloat(document.getElementById('homeAvgScored').value),
-      homeAvgConceded: parseFloat(document.getElementById('homeAvgConceded').value),
-      awayAvgScored: parseFloat(document.getElementById('awayAvgScored').value),
-      awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value)
+      homeAvgScored: parseFloat(document.getElementById('homeAvgScored').value) || 1.0,
+      homeAvgConceded: parseFloat(document.getElementById('homeAvgConceded').value) || 1.0,
+      awayAvgScored: parseFloat(document.getElementById('awayAvgScored').value) || 1.0,
+      awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value) || 1.0
     };
 
     try {
-      // Disables browser cache on fetch calls
       const res = await fetch('/api/predict', {
         method: 'POST',
         headers: { 
@@ -231,9 +236,9 @@
         },
         body: JSON.stringify(payload)
       });
+
       const data = await res.json();
 
-      // Render expected score
       document.getElementById('expectedScore').innerText = `${data.expectedScore.home} - ${data.expectedScore.away}`;
       
       const badge = document.getElementById('passBadge');
@@ -245,7 +250,6 @@
         badge.style.background = '#dc2626';
       }
 
-      // Render sport-specific markets dynamically
       const container = document.getElementById('marketsContainer');
       container.innerHTML = '';
       data.markets.forEach(m => {
@@ -260,6 +264,6 @@
       alert('Error fetching prediction. Please check inputs.');
     }
   }
-  </script>
+</script>
 </body>
 </html>
