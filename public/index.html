@@ -170,8 +170,7 @@
   </div>
 </div>
 
-<script>
-  // Parsing logic for quick past results string
+  <script>
   function calculateAverages(scoreString) {
     const matches = scoreString.split(',').map(s => s.trim());
     let totalScored = 0;
@@ -223,14 +222,18 @@
     };
 
     try {
+      // Disables browser cache on fetch calls
       const res = await fetch('/api/predict', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
 
-      // Render expected score as clean integers
+      // Render expected score
       document.getElementById('expectedScore').innerText = `${data.expectedScore.home} - ${data.expectedScore.away}`;
       
       const badge = document.getElementById('passBadge');
@@ -242,7 +245,7 @@
         badge.style.background = '#dc2626';
       }
 
-      // Render markets
+      // Render sport-specific markets dynamically
       const container = document.getElementById('marketsContainer');
       container.innerHTML = '';
       data.markets.forEach(m => {
@@ -257,6 +260,6 @@
       alert('Error fetching prediction. Please check inputs.');
     }
   }
-</script>
+  </script>
 </body>
 </html>
