@@ -1,25 +1,25 @@
 {
-  "name": "MATCHDAY Engine",
   "short_name": "MATCHDAY",
-  "description": "Stateless Sports Prediction PWA",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "any",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "name": "MATCHDAY - Deep Sports Prediction Engine",
+  "description": "Stateless PWA Sports Prediction Engine",
   "icons": [
     {
-      "src": "https://dummyimage.com/192x192/2563eb/ffffff.png&text=M",
-      "sizes": "192x192",
+      "src": "https://cdn-icons-png.flaticon.com/512/53/53283.png",
       "type": "image/png",
+      "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "https://dummyimage.com/512x512/2563eb/ffffff.png&text=MATCHDAY",
-      "sizes": "512x512",
+      "src": "https://cdn-icons-png.flaticon.com/512/53/53283.png",
       "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/"
 }
