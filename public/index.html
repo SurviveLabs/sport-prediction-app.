@@ -1,26 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-    <!-- PWA Manifest Link -->
-    <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#0f172a" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('SW Registered:', reg.scope))
-        .catch(err => console.error('SW Fail:', err));
-    });
-  }
-</script>
-
-</head>
 <head>
-  <link rel="manifest" href="/manifest.json" />
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MATCHDAY - Sports Prediction Engine</title>
+
+  <!-- PWA & Mobile Settings -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW Registered:', reg.scope))
+          .catch(err => console.error('SW Fail:', err));
+      });
+    }
+  </script>
+
   <style>
     :root {
       --bg: #0f172a;
@@ -30,95 +31,26 @@
       --text: #f8fafc;
       --muted: #94a3b8;
       --border: #334155;
+      --danger: #ef4444;
     }
-    body {
-      margin: 0;
-      padding: 16px;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      letter-spacing: 1px;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      color: var(--muted);
-      margin: 10px 0 4px;
-    }
-    select, input {
-      width: 100%;
-      padding: 10px;
-      background: #0f172a;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      box-sizing: border-box;
-      font-size: 14px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    button {
-      width: 100%;
-      padding: 14px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 16px;
-    }
-    button:hover { opacity: 0.9; }
-    .quick-box {
-      font-size: 12px;
-      color: #38bdf8;
-      margin-top: 8px;
-      text-align: center;
-    }
-    .output-box {
-      display: none;
-      margin-top: 20px;
-    }
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      background: var(--green);
-    }
-    .scoreline {
-      font-size: 28px;
-      font-weight: bold;
-      text-align: center;
-      margin: 10px 0;
-    }
-    .market-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
+    .container { max-width: 500px; width: 100%; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 20px; letter-spacing: 1px; color: #38bdf8; font-size: 1.5rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; font-weight: 600; text-transform: uppercase; }
+    select, input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 16px; }
+    button:active { opacity: 0.8; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+    .badge-pass { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+    .badge-skip { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--danger); }
+    .market-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .market-row:last-child { border-bottom: none; }
+    .market-name { font-size: 0.85rem; }
+    .market-odds { font-size: 0.85rem; font-weight: 700; color: #38bdf8; }
+    #results { display: none; }
   </style>
 </head>
 <body>
@@ -126,153 +58,154 @@
 <div class="container">
   <h1>MATCHDAY</h1>
 
-  <div class="card">
-    <label for="sportSelect">Sport</label>
-<select id="sportSelect">
-  <option value="football">Football (Soccer)</option>
-  <option value="basketball">Basketball</option>
-</select>
-
-    <label for="tierSelect">League Tier Level</label>
-    <select id="tierSelect">
-      <option value="major">Major Tier (75% Gate)</option>
-      <option value="lower">Lower / Regional Tier (80% Gate)</option>
-    </select>
+  <form id="predictForm" class="card">
+    <div class="grid">
+      <div>
+        <label for="sportSelect">Sport</label>
+        <select id="sportSelect">
+          <option value="football">Football (Soccer)</option>
+          <option value="basketball">Basketball</option>
+        </select>
+      </div>
+      <div>
+        <label for="tierSelect">League Tier</label>
+        <select id="tierSelect">
+          <option value="major">Major Tier (75%)</option>
+          <option value="lower">Lower Tier (80%)</option>
+        </select>
+      </div>
+    </div>
 
     <div class="grid">
       <div>
-        <label for="homeName">Home Team / Player</label>
-        <input type="text" id="homeName" placeholder="e.g. Home" />
+        <label for="homeName">Home Team</label>
+        <input type="text" id="homeName" placeholder="Home Team">
       </div>
       <div>
-        <label for="awayName">Away Team / Player</label>
-        <input type="text" id="awayName" placeholder="e.g. Away" />
+        <label for="awayName">Away Team</label>
+        <input type="text" id="awayName" placeholder="Away Team">
       </div>
     </div>
 
-    <!-- Home Team Totals -->
-    <div class="grid" style="margin-top: 10px;">
+    <!-- Scored Stats -->
+    <div class="grid">
       <div>
-        <label for="homeTotalScored">Home Total Scored</label>
-        <input type="number" id="homeTotalScored" placeholder="e.g. 540 or 10" oninput="updateAverages()" />
+        <label for="homeAvgScored">Home Scored Avg</label>
+        <input type="number" step="0.01" id="homeAvgScored" placeholder="e.g. 1.8" required>
       </div>
       <div>
-        <label for="homeTotalConceded">Home Total Conceded</label>
-        <input type="number" id="homeTotalConceded" placeholder="e.g. 510 or 4" oninput="updateAverages()" />
-      </div>
-    </div>
-
-    <!-- Away Team Totals -->
-    <div class="grid" style="margin-top: 10px;">
-      <div>
-        <label for="awayTotalScored">Away Total Scored</label>
-        <input type="number" id="awayTotalScored" placeholder="e.g. 520 or 12" oninput="updateAverages()" />
-      </div>
-      <div>
-        <label for="awayTotalConceded">Away Total Conceded</label>
-        <input type="number" id="awayTotalConceded" placeholder="e.g. 490 or 8" oninput="updateAverages()" />
+        <label for="awayAvgScored">Away Scored Avg</label>
+        <input type="number" step="0.01" id="awayAvgScored" placeholder="e.g. 1.2" required>
       </div>
     </div>
 
-    <label for="gamesCount">Number of Games Played</label>
-    <input type="number" id="gamesCount" value="5" oninput="updateAverages()" />
-
-    <!-- Real-Time Calculated Average Display -->
-    <div class="quick-box" id="calculatedAveragesDisplay">
-      Home: 0.00 Scored / 0.00 Conceded | Away: 0.00 Scored / 0.00 Conceded
+    <!-- Conceded Stats -->
+    <div class="grid">
+      <div>
+        <label for="homeAvgConceded">Home Conceded Avg</label>
+        <input type="number" step="0.01" id="homeAvgConceded" placeholder="e.g. 0.9" required>
+      </div>
+      <div>
+        <label for="awayAvgConceded">Away Conceded Avg</label>
+        <input type="number" step="0.01" id="awayAvgConceded" placeholder="e.g. 1.4" required>
+      </div>
     </div>
 
-    <!-- Hidden values passed to API -->
-    <input type="hidden" id="homeAvgScored" value="0" />
-    <input type="hidden" id="homeAvgConceded" value="0" />
-    <input type="hidden" id="awayAvgScored" value="0" />
-    <input type="hidden" id="awayAvgConceded" value="0" />
-
-    <button onclick="runPrediction()">ANALYZE ALL MARKETS</button>
-  </div>
-
-  <!-- Output Display Card -->
-  <div class="card output-box" id="resultsCard">
-    <div style="text-align: center;">
-      <span class="badge" id="passBadge">PASSED FILTER</span>
+    <!-- Deep Prediction Inputs -->
+    <div class="grid">
+      <div>
+        <label for="homeFormWeight">Home Form (1-10)</label>
+        <input type="number" id="homeFormWeight" value="7" min="1" max="10">
+      </div>
+      <div>
+        <label for="awayFormWeight">Away Form (1-10)</label>
+        <input type="number" id="awayFormWeight" value="7" min="1" max="10">
+      </div>
     </div>
-    <div class="scoreline" id="expectedScore">0 - 0</div>
-    <div id="marketsContainer"></div>
+
+    <div class="grid">
+      <div>
+        <label for="homeKeyAbsences">Home Missing Starters</label>
+        <input type="number" id="homeKeyAbsences" value="0" min="0" max="5">
+      </div>
+      <div>
+        <label for="awayKeyAbsences">Away Missing Starters</label>
+        <input type="number" id="awayKeyAbsences" value="0" min="0" max="5">
+      </div>
+    </div>
+
+    <button type="submit" id="submitBtn">ANALYZE MATCH</button>
+  </form>
+
+  <div id="results" class="card">
+    <div id="statusBadge" class="badge"></div>
+    <h3 id="expectedScore" style="margin-bottom: 12px; font-size: 1.1rem;"></h3>
+    <div id="marketsList"></div>
   </div>
 </div>
 
 <script>
-  function updateAverages() {
-    const games = parseFloat(document.getElementById('gamesCount').value) || 1;
-    
-    const hScored = parseFloat(document.getElementById('homeTotalScored').value) || 0;
-    const hConceded = parseFloat(document.getElementById('homeTotalConceded').value) || 0;
-    const aScored = parseFloat(document.getElementById('awayTotalScored').value) || 0;
-    const aConceded = parseFloat(document.getElementById('awayTotalConceded').value) || 0;
+  document.getElementById('predictForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.innerText = 'PROCESSING...';
+    btn.disabled = true;
 
-    const hAvgS = (hScored / games).toFixed(2);
-    const hAvgC = (hConceded / games).toFixed(2);
-    const aAvgS = (aScored / games).toFixed(2);
-    const aAvgC = (aConceded / games).toFixed(2);
-
-    document.getElementById('homeAvgScored').value = hAvgS;
-    document.getElementById('homeAvgConceded').value = hAvgC;
-    document.getElementById('awayAvgScored').value = aAvgS;
-    document.getElementById('awayAvgConceded').value = aAvgC;
-
-    document.getElementById('calculatedAveragesDisplay').innerText = 
-      `Home: ${hAvgS} Scored / ${hAvgC} Conceded | Away: ${aAvgS} Scored / ${aAvgC} Conceded`;
-  }
-
-  async function runPrediction() {
     const payload = {
       sport: document.getElementById('sportSelect').value,
       tier: document.getElementById('tierSelect').value,
       homeName: document.getElementById('homeName').value || 'Home',
       awayName: document.getElementById('awayName').value || 'Away',
-      homeAvgScored: parseFloat(document.getElementById('homeAvgScored').value) || 1.0,
-      homeAvgConceded: parseFloat(document.getElementById('homeAvgConceded').value) || 1.0,
-      awayAvgScored: parseFloat(document.getElementById('awayAvgScored').value) || 1.0,
-      awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value) || 1.0
+      homeAvgScored: parseFloat(document.getElementById('homeAvgScored').value) || 0,
+      homeAvgConceded: parseFloat(document.getElementById('homeAvgConceded').value) || 0,
+      awayAvgScored: parseFloat(document.getElementById('awayAvgScored').value) || 0,
+      awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value) || 0,
+      homeFormWeight: parseFloat(document.getElementById('homeFormWeight').value) || 7,
+      awayFormWeight: parseFloat(document.getElementById('awayFormWeight').value) || 7,
+      homeKeyAbsences: parseInt(document.getElementById('homeKeyAbsences').value) || 0,
+      awayKeyAbsences: parseInt(document.getElementById('awayKeyAbsences').value) || 0
     };
 
     try {
       const res = await fetch('/api/predict', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
       const data = await res.json();
 
-      document.getElementById('expectedScore').innerText = `${data.expectedScore.home} - ${data.expectedScore.away}`;
-      
-      const badge = document.getElementById('passBadge');
+      const resultsDiv = document.getElementById('results');
+      const badgeDiv = document.getElementById('statusBadge');
+      const scoreH3 = document.getElementById('expectedScore');
+      const marketsList = document.getElementById('marketsList');
+
+      resultsDiv.style.display = 'block';
+
       if (data.passedFilter) {
-        badge.innerText = 'PASSED FILTER';
-        badge.style.background = 'var(--green)';
+        badgeDiv.className = 'badge badge-pass';
+        badgeDiv.innerText = `QUALIFIED (GATE: ${data.requiredGate}%)`;
       } else {
-        badge.innerText = 'HIGH VARIANCE - SKIP';
-        badge.style.background = '#dc2626';
+        badgeDiv.className = 'badge badge-skip';
+        badgeDiv.innerText = `HIGH VARIANCE - SKIP (GATE: ${data.requiredGate}%)`;
       }
 
-      const container = document.getElementById('marketsContainer');
-      container.innerHTML = '';
-      data.markets.forEach(m => {
-        const row = document.createElement('div');
-        row.className = 'market-row';
-        row.innerHTML = `<span><strong>${m.name}</strong></span><span>${m.probability}% (Odds ~${m.fairOdds})</span>`;
-        container.appendChild(row);
-      });
+      scoreH3.innerText = `Expected Score: ${payload.homeName} ${data.expectedScore.home} - ${data.expectedScore.away} ${payload.awayName}`;
 
-      document.getElementById('resultsCard').style.display = 'block';
+      marketsList.innerHTML = data.markets.map(m => `
+        <div class="market-row">
+          <div class="market-name">${m.name}</div>
+          <div class="market-odds">${m.probability}% (${m.fairOdds})</div>
+        </div>
+      `).join('');
+
     } catch (err) {
-      alert('Error fetching prediction. Please check inputs.');
+      alert('Error fetching prediction. Please check your backend deployment.');
+    } finally {
+      btn.innerText = 'ANALYZE MATCH';
+      btn.disabled = false;
     }
-  }
+  });
 </script>
+
 </body>
 </html>
