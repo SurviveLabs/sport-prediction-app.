@@ -29,7 +29,6 @@ export default function handler(req, res) {
     bookieOdds = null
   } = req.body;
 
-  // Realistic sharp betting thresholds (55% Major, 60% Lower Tier)
   const requiredGate = tier === 'lower' ? 60 : 55;
 
   const homeFormFactor = 0.88 + (homeFormWeight / 10) * 0.24;
@@ -52,8 +51,10 @@ export default function handler(req, res) {
     let isValueBet = false;
 
     if (bookieOdds !== null && !isNaN(bookieOdds) && bookieOdds > 1.0) {
-      evPercentage = Number((((clampedProb / 100) * bookieOdds) - 1) * 100).toFixed(1);
-      isValueBet = bookieOdds > fairOdds;
+      const rawEV = (((clampedProb / 100) * bookieOdds) - 1) * 100;
+      evPercentage = Number(rawEV).toFixed(1);
+      // STRICT CHECK: Only flag as value bet if EV is strictly positive AND bookie odds beat fair odds
+      isValueBet = rawEV > 0 && bookieOdds > fairOdds;
     }
 
     return {
@@ -94,7 +95,6 @@ export default function handler(req, res) {
       const probHalfOver = Math.min(95, Math.max(5, (1 / (1 + Math.exp(-1.7 * halfZ))) * 100));
       const probHalfUnder = 100 - probHalfOver;
 
-      // Track max confidence among model outputs
       maxConfidence = Math.max(probOver, probUnder, probHalfOver, probHalfUnder);
 
       markets = [
@@ -150,9 +150,14 @@ export default function handler(req, res) {
       const pDraw = rawDraw / totalProb;
       const pAwayWin = rawAwayWin / totalProb;
 
-      const prob1X = (pHomeWin + pDraw) * 100;
-      const probX2 = (pAwayWin + pDraw) * 100;
-      const prob12 = (pHomeWin + pAwayWin) * 100;
+      // Corrected mutually consistent probabilities
+      const probHomeWin = pHomeWin * 100;
+      const probAwayWin = pAwayWin * 100;
+      const probDraw = pDraw * 100;
+
+      const prob1X = probHomeWin + probDraw;
+      const probX2 = probAwayWin + probDraw;
+      const prob12 = probHomeWin + probAwayWin;
 
       markets = [
         evaluateMarket(`1X (${homeName} or Draw)`, prob1X),
@@ -161,7 +166,6 @@ export default function handler(req, res) {
       ];
 
       let customOverProb = 0;
-      let customUnderProb = 0;
 
       if (customBookieLine !== null && !isNaN(customBookieLine)) {
         let cumulativeUnder = 0;
@@ -169,7 +173,7 @@ export default function handler(req, res) {
         for (let k = 0; k <= maxK; k++) {
           cumulativeUnder += poisson(k, totalXG);
         }
-        customUnderProb = cumulativeUnder * 100;
+        const customUnderProb = cumulativeUnder * 100;
         customOverProb = 100 - customUnderProb;
 
         markets.push(
@@ -189,7 +193,6 @@ export default function handler(req, res) {
       const probBTTS = ((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG))) * 100;
       markets.push(evaluateMarket(`Both Teams to Score (BTTS)`, probBTTS));
 
-      // Max confidence among core profitable lean markets
       maxConfidence = Math.max(prob1X, customOverProb > 0 ? customOverProb : 0, probBTTS);
       break;
     }
