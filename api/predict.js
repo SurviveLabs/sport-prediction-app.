@@ -39,9 +39,6 @@ export default function handler(req, res) {
   const awayAttackMod = Math.max(0.75, 1.0 - (awayKeyAbsences * 0.04));
   const awayDefenseMod = Math.min(1.30, 1.0 + (awayKeyAbsences * 0.04));
 
-  let rawHomeXG = ((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * homeDefenseMod)) / 2;
-  let rawAwayXG = ((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * awayDefenseMod)) / 2;
-
   let markets = [];
   let maxConfidence = 0;
   let homeScoreInt = 0;
@@ -70,9 +67,10 @@ export default function handler(req, res) {
 
   switch (sport) {
     case 'basketball': {
-      // Correct scaling for basketball points (e.g. 70-120 range per team)
-      let homePts = Math.max(70, Math.round((rawHomeXG * 18) + 40));
-      let awayPts = Math.max(70, Math.round((rawAwayXG * 18) + 38));
+      // Basketball uses actual points (e.g. 110 pts), so we average them directly with form/absence mods
+      let homePts = Math.max(60, Math.round(((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * homeDefenseMod)) / 2));
+      let awayPts = Math.max(60, Math.round(((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * awayDefenseMod)) / 2));
+      
       const totalXG = homePts + awayPts;
       
       homeScoreInt = homePts;
@@ -109,6 +107,9 @@ export default function handler(req, res) {
 
     case 'football':
     default: {
+      let rawHomeXG = ((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * homeDefenseMod)) / 2;
+      let rawAwayXG = ((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * awayDefenseMod)) / 2;
+
       let homeXG = Math.max(0.10, rawHomeXG * 1.12);
       let awayXG = Math.max(0.10, rawAwayXG * 0.90);
       const totalXG = homeXG + awayXG;
