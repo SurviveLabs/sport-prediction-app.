@@ -29,10 +29,8 @@ export default function handler(req, res) {
     bookieOdds = null
   } = req.body;
 
-  // 1. DYNAMIC GATE THRESHOLDS (Informational only, never blocks output)
   const requiredGate = tier === 'lower' ? 80 : 75;
 
-  // 2. FORM & ABSENCE DYNAMICS
   const homeFormFactor = 0.88 + (homeFormWeight / 10) * 0.24;
   const awayFormFactor = 0.88 + (awayFormWeight / 10) * 0.24;
 
@@ -49,7 +47,6 @@ export default function handler(req, res) {
   let homeScoreInt = 0;
   let awayScoreInt = 0;
 
-  // Helper function to evaluate Fair Odds and +EV
   const evaluateMarket = (name, probability) => {
     const clampedProb = Math.min(99, Math.max(1, Math.round(probability)));
     const fairOdds = Number((100 / clampedProb).toFixed(2));
@@ -89,11 +86,20 @@ export default function handler(req, res) {
       const probOver = calcTotalProb(targetLine);
       const probUnder = 100 - probOver;
 
-      maxConfidence = Math.max(probOver, probUnder);
+      // 1st Half Calculations Restored
+      const halfXG = totalXG * 0.51;
+      const halfOverLine = Math.floor(halfXG - 2.0) + 0.5;
+      const halfZ = (halfXG - halfOverLine) / 11.5;
+      const probHalfOver = Math.min(95, Math.max(5, (1 / (1 + Math.exp(-1.7 * halfZ))) * 100));
+      const probHalfUnder = 100 - probHalfOver;
+
+      maxConfidence = Math.max(probOver, probUnder, probHalfOver, probHalfUnder);
 
       markets = [
         evaluateMarket(`Over ${targetLine} Total Points`, probOver),
-        evaluateMarket(`Under ${targetLine} Total Points`, probUnder)
+        evaluateMarket(`Under ${targetLine} Total Points`, probUnder),
+        evaluateMarket(`1st Half Over ${halfOverLine} Points`, probHalfOver),
+        evaluateMarket(`1st Half Under ${halfOverLine} Points`, probHalfUnder)
       ];
       break;
     }
