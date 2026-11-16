@@ -1,15 +1,17 @@
-const express = require('express');
-const cors = require('cors');
+export default function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-app.get('/', (req, res) => {
-  res.send('MATCHDAY Prediction Engine active.');
-});
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-app.post('/api/predict', (req, res) => {
   const { 
     sport = 'football', 
     tier = 'major', 
@@ -182,7 +184,7 @@ app.post('/api/predict', (req, res) => {
 
   const passedFilter = maxConfidence >= requiredGate;
 
-  res.json({
+  return res.status(200).json({
     sport,
     leagueTier: tier,
     requiredGate,
@@ -191,6 +193,4 @@ app.post('/api/predict', (req, res) => {
     expectedScore: { home: homeScoreInt, away: awayScoreInt },
     markets
   });
-});
-
-module.exports = app;
+}
