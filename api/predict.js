@@ -17,7 +17,9 @@ export default function handler(req, res) {
     homeFormWeight = 5,
     awayFormWeight = 5,
     homeKeyAbsences = 0,
-    awayKeyAbsences = 0
+    awayKeyAbsences = 0,
+    customBookieLine = null,
+    bookieOdds = null // <--- New bookmaker odds input
   } = req.body;
 
   // 1. INPUT ADJUSTMENTS & FORM/ABSENCE DYNAMICS
@@ -51,15 +53,37 @@ export default function handler(req, res) {
   let markets = [];
   let maxConfidence = 0;
 
-  // 2. BASKETBALL MODEL (TOTALS FOCUS ONLY)
-  if (sport === 'basketball') {
-    const diff = homeXG - awayXG;
-    const pHomeWin = 1 / (1 + Math.exp(-diff / 6.5));
-    const pAwayWin = 1 - pHomeWin;
+  // Helper function to calculate Fair Odds and +EV status
+  const evaluateMarket = (name, probability) => {
+    const fairOdds = Number((100 / probability).toFixed(2));
+    let evPercentage = null;
+    let isValueBet = false;
 
-    const targetLine = Math.floor(totalXG - 3.5) + 0.5;
-    const zScore = (totalXG - targetLine) / 16.5;
-    const probOver = Math.min(95, Math.max(5, Math.round((1 / (1 + Math.exp(-1.7 * zScore))) * 100)));
+    if (bookieOdds !== null && bookieOdds > 1.0) {
+      // Expected Value formula: (Probability * Bookie Odds) - 1
+      evPercentage = Number((((probability / 100) * bookieOdds) - 1) * 100).toFixed(1);
+      isValueBet = bookieOdds > fairOdds;
+    }
+
+    return {
+      name,
+      probability,
+      fairOdds: fairOdds.toFixed(2),
+      bookieOdds: bookieOdds !== null ? bookieOdds.toFixed(2) : null,
+      evPercentage: evPercentage !== null ? `${evPercentage}%` : null,
+      isValueBet
+    };
+  };
+
+  // 2. BASKETBALL MODEL
+  if (sport === 'basketball') {
+    const calcTotalProb = (line, stdDev = 16.5) => {
+      const z = (totalXG - line) / stdDev;
+      return Math.min(96, Math.max(4, Math.round((1 / (1 + Math.exp(-1.7 * z))) * 100)));
+    };
+
+    const targetLine = customBookieLine !== null ? customBookieLine : (Math.floor(totalXG - 3.5) + 0.5);
+    const probOver = calcTotalProb(targetLine);
     const probUnder = 100 - probOver;
 
     const halfXG = totalXG * 0.51;
@@ -68,18 +92,17 @@ export default function handler(req, res) {
     const probHalfOver = Math.min(95, Math.max(5, Math.round((1 / (1 + Math.exp(-1.7 * halfZ))) * 100)));
     const probHalfUnder = 100 - probHalfOver;
 
-    // Use win probabilities for internal confidence gating, but don't output moneyline markets
-    maxConfidence = Math.max(Math.round(pHomeWin * 100), Math.round(pAwayWin * 100), probOver, probUnder);
+    maxConfidence = Math.max(probOver, probUnder);
 
     markets = [
-      { name: `Over ${targetLine} Total Points`, probability: probOver, fairOdds: (100 / probOver).toFixed(2) },
-      { name: `Under ${targetLine} Total Points`, probability: probUnder, fairOdds: (100 / probUnder).toFixed(2) },
-      { name: `1st Half Over ${halfOverLine} Points`, probability: probHalfOver, fairOdds: (100 / probHalfOver).toFixed(2) },
-      { name: `1st Half Under ${halfOverLine} Points`, probability: probHalfUnder, fairOdds: (100 / probHalfUnder).toFixed(2) }
+      evaluateMarket(`Over ${targetLine} Total Points`, probOver),
+      evaluateMarket(`Under ${targetLine} Total Points`, probUnder),
+      evaluateMarket(`1st Half Over ${halfOverLine} Points`, probHalfOver),
+      evaluateMarket(`1st Half Under ${halfOverLine} Points`, probHalfUnder)
     ];
   }
 
-  // 3. FOOTBALL MODEL (DOUBLE CHANCE & GOAL LINES ONLY)
+  // 3. FOOTBALL MODEL
   else {
     function poisson(k, lambda) {
       let fact = 1;
@@ -115,24 +138,47 @@ export default function handler(req, res) {
     const pAwayWin = rawAwayWin / totalProb;
 
     const prob1X = Math.min(99, Math.max(1, Math.round((pHomeWin + pDraw) * 100)));
-    const probX2 = Math.min(99, Math.max(1, Math.round((pAwayWin + pDraw) * 100))) ;
+    const probX2 = Math.min(99, Math.max(1, Math.round((pAwayWin + pDraw) * 100)));
     const prob12 = Math.min(99, Math.max(1, Math.round((pHomeWin + pAwayWin) * 100)));
 
-    const pUnder25 = poisson(0, totalXG) + poisson(1, totalXG) + poisson(2, totalXG);
-    const probUnder25 = Math.min(99, Math.max(1, Math.round(pUnder25 * 100)));
-    const probOver15 = Math.min(99, Math.max(1, Math.round((1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100)));
+    const p0 = poisson(0, totalXG);
+    const p1 = poisson(1, totalXG);
+    const p2 = poisson(2, totalXG);
+
+    const probOver15 = Math.min(99, Math.max(1, Math.round((1 - (p0 + p1)) * 100)));
+    const probUnder25 = Math.min(99, Math.max(1, Math.round((p0 + p1 + p2) * 100)));
     const probBTTS = Math.min(95, Math.max(1, Math.round((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG)) * 100)));
 
-    maxConfidence = Math.max(prob1X, probX2, prob12, probOver15, probUnder25);
-
     markets = [
-      { name: `1X (${homeName} or Draw)`, probability: prob1X, fairOdds: (100 / prob1X).toFixed(2) },
-      { name: `X2 (${awayName} or Draw)`, probability: probX2, fairOdds: (100 / probX2).toFixed(2) },
-      { name: `12 (Home or Away Win)`, probability: prob12, fairOdds: (100 / prob12).toFixed(2) },
-      { name: `Over 1.5 Goals`, probability: probOver15, fairOdds: (100 / probOver15).toFixed(2) },
-      { name: `Under 2.5 Goals`, probability: probUnder25, fairOdds: (100 / probUnder25).toFixed(2) },
-      { name: `Both Teams to Score (BTTS)`, probability: probBTTS, fairOdds: (100 / probBTTS).toFixed(2) }
+      evaluateMarket(`1X (${homeName} or Draw)`, prob1X),
+      evaluateMarket(`X2 (${awayName} or Draw)`, probX2),
+      evaluateMarket(`12 (Home or Away Win)`, prob12)
     ];
+
+    if (customBookieLine !== null) {
+      let cumulativeUnder = 0;
+      let maxK = Math.floor(customBookieLine);
+      for (let k = 0; k <= maxK; k++) {
+        cumulativeUnder += poisson(k, totalXG);
+      }
+      const customUnderProb = Math.min(99, Math.max(1, Math.round(cumulativeUnder * 100)));
+      const customOverProb = 100 - customUnderProb;
+
+      maxConfidence = Math.max(prob1X, customOverProb, customUnderProb);
+
+      markets.push(
+        evaluateMarket(`Over ${customBookieLine} Goals`, customOverProb),
+        evaluateMarket(`Under ${customBookieLine} Goals`, customUnderProb)
+      );
+    } else {
+      maxConfidence = Math.max(prob1X, probOver15, probUnder25);
+      markets.push(
+        evaluateMarket(`Over 1.5 Goals`, probOver15),
+        evaluateMarket(`Under 2.5 Goals`, probUnder25)
+      );
+    }
+
+    markets.push(evaluateMarket(`Both Teams to Score (BTTS)`, probBTTS));
   }
 
   const requiredGate = tier === 'lower' ? 80 : 75;
