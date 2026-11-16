@@ -20,19 +20,16 @@ export default function handler(req, res) {
     awayKeyAbsences = 0
   } = req.body;
 
-  // 1. BALANCED INPUT ADJUSTMENTS
-  // Form Multiplier: Centered at 5 (1.00x), scales smoothly from 0.90x (Form 1) to 1.12x (Form 10)
+  // 1. NATURAL INPUT ADJUSTMENTS
   const homeFormFactor = 0.88 + (homeFormWeight / 10) * 0.24;
   const awayFormFactor = 0.88 + (awayFormWeight / 10) * 0.24;
 
-  // Absence Impact: Hurts BOTH attack (-4% per starter) AND defense (+4% goals conceded per starter)
-  const homeAttackMod = Math.max(0.80, 1.0 - (homeKeyAbsences * 0.04));
-  const homeDefenseMod = Math.min(1.25, 1.0 + (homeKeyAbsences * 0.04));
+  const homeAttackMod = Math.max(0.75, 1.0 - (homeKeyAbsences * 0.04));
+  const homeDefenseMod = Math.min(1.30, 1.0 + (homeKeyAbsences * 0.04));
 
-  const awayAttackMod = Math.max(0.80, 1.0 - (awayKeyAbsences * 0.04));
-  const awayDefenseMod = Math.min(1.25, 1.0 + (awayKeyAbsences * 0.04));
+  const awayAttackMod = Math.max(0.75, 1.0 - (awayKeyAbsences * 0.04));
+  const awayDefenseMod = Math.min(1.30, 1.0 + (awayKeyAbsences * 0.04));
 
-  // Cross-adjusted Expected Scoring (Attack adjusted by Form/Absences + Opponent Conceded adjusted by Opponent Absences)
   let rawHomeXG = ((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * awayDefenseMod)) / 2;
   let rawAwayXG = ((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * homeDefenseMod)) / 2;
 
@@ -40,13 +37,11 @@ export default function handler(req, res) {
   let awayXG = 0;
 
   if (sport === 'basketball') {
-    // Realistic Home Court Advantage (+2.5 pts home, -1.5 pts away)
-    homeXG = Math.max(50, rawHomeXG + 2.5);
-    awayXG = Math.max(50, rawAwayXG - 1.5);
+    homeXG = Math.max(40, rawHomeXG + 2.5);
+    awayXG = Math.max(40, rawAwayXG - 1.5);
   } else {
-    // Multiplicative Home Field Advantage (+12% home boost, -10% away dampening)
-    homeXG = Math.max(0.15, rawHomeXG * 1.12);
-    awayXG = Math.max(0.15, rawAwayXG * 0.90);
+    homeXG = Math.max(0.10, rawHomeXG * 1.12);
+    awayXG = Math.max(0.10, rawAwayXG * 0.90);
   }
 
   const totalXG = homeXG + awayXG;
@@ -54,29 +49,24 @@ export default function handler(req, res) {
   const awayScoreInt = Math.round(awayXG);
 
   let markets = [];
-  let maxConfidence = 0;
 
-  // 2. BASKETBALL CALIBRATED MODEL
+  // 2. BASKETBALL UNRESTRICTED MODEL
   if (sport === 'basketball') {
     const diff = homeXG - awayXG;
-    // Standard basketball margin std dev is ~11.5 points (logistic scale factor ~6.5)
     const pHomeWin = 1 / (1 + Math.exp(-diff / 6.5));
     const pAwayWin = 1 - pHomeWin;
 
-    const probHomeWin = Math.min(98, Math.max(2, Math.round(pHomeWin * 100)));
-    const probAwayWin = Math.min(98, Math.max(2, Math.round(pAwayWin * 100)));
+    const probHomeWin = Math.min(99, Math.max(1, Math.round(pHomeWin * 100)));
+    const probAwayWin = Math.min(99, Math.max(1, Math.round(pAwayWin * 100)));
 
-    // Use a standard Normal CDF approximation for Totals (Basketball total std dev ~ 16.5 pts)
-    const targetLine = Math.floor(totalXG - 4.5) + 0.5;
+    const targetLine = Math.floor(totalXG - 3.5) + 0.5;
     const zScore = (totalXG - targetLine) / 16.5;
-    const probOver = Math.min(88, Math.max(15, Math.round((1 / (1 + Math.exp(-1.7 * zScore))) * 100)));
+    const probOver = Math.min(95, Math.max(5, Math.round((1 / (1 + Math.exp(-1.7 * zScore))) * 100)));
 
     const halfXG = totalXG * 0.51;
-    const halfOverLine = Math.floor(halfXG - 2.5) + 0.5;
+    const halfOverLine = Math.floor(halfXG - 2.0) + 0.5;
     const halfZ = (halfXG - halfOverLine) / 11.5;
-    const probHalfOver = Math.min(88, Math.max(15, Math.round((1 / (1 + Math.exp(-1.7 * halfZ))) * 100)));
-
-    maxConfidence = Math.max(probHomeWin, probAwayWin, probOver, probHalfOver);
+    const probHalfOver = Math.min(95, Math.max(5, Math.round((1 / (1 + Math.exp(-1.7 * halfZ))) * 100)));
 
     markets = [
       { name: `${homeName} Moneyline (Match Winner)`, probability: probHomeWin, fairOdds: (100 / probHomeWin).toFixed(2) },
@@ -86,7 +76,7 @@ export default function handler(req, res) {
     ];
   }
 
-  // 3. FOOTBALL NORMALIZED DIXON-COLES POISSON MODEL
+  // 3. FOOTBALL UNRESTRICTED DIXON-COLES POISSON MODEL
   else {
     function poisson(k, lambda) {
       let fact = 1;
@@ -116,20 +106,18 @@ export default function handler(req, res) {
       }
     }
 
-    // NORMALIZE PROBABILITIES SO THEY SUM TO EXACTLY 100%
+    // Normalize probabilities to 100% total mass
     const totalProb = rawHomeWin + rawDraw + rawAwayWin;
     const pHomeWin = rawHomeWin / totalProb;
     const pDraw = rawDraw / totalProb;
     const pAwayWin = rawAwayWin / totalProb;
 
-    const prob1X = Math.min(98, Math.max(2, Math.round((pHomeWin + pDraw) * 100)));
-    const probX2 = Math.min(98, Math.max(2, Math.round((pAwayWin + pDraw) * 100)));
-    const prob12 = Math.min(98, Math.max(2, Math.round((pHomeWin + pAwayWin) * 100)));
+    const prob1X = Math.min(99, Math.max(1, Math.round((pHomeWin + pDraw) * 100)));
+    const probX2 = Math.min(99, Math.max(1, Math.round((pAwayWin + pDraw) * 100)));
+    const prob12 = Math.min(99, Math.max(1, Math.round((pHomeWin + pAwayWin) * 100)));
 
-    const probOver15 = Math.min(98, Math.max(2, Math.round((1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100)));
-    const probBTTS = Math.min(95, Math.max(2, Math.round((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG)) * 100)));
-
-    maxConfidence = Math.max(prob1X, probX2, prob12, probOver15, probBTTS);
+    const probOver15 = Math.min(99, Math.max(1, Math.round((1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100)));
+    const probBTTS = Math.min(95, Math.max(1, Math.round((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG)) * 100)));
 
     markets = [
       { name: `1X (${homeName} or Draw)`, probability: prob1X, fairOdds: (100 / prob1X).toFixed(2) },
@@ -140,13 +128,9 @@ export default function handler(req, res) {
     ];
   }
 
-  const requiredGate = tier === 'lower' ? 80 : 75;
-  const passedFilter = maxConfidence >= requiredGate;
-
   return res.status(200).json({
     expectedScore: { home: homeScoreInt, away: awayScoreInt },
-    passedFilter,
-    requiredGate,
+    passedFilter: true, // Always open for inspection
     markets
   });
 }
