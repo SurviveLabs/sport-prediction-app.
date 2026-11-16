@@ -29,7 +29,8 @@ export default function handler(req, res) {
     bookieOdds = null
   } = req.body;
 
-  const requiredGate = tier === 'lower' ? 80 : 75;
+  // Realistic sharp betting thresholds (55% Major, 60% Lower Tier)
+  const requiredGate = tier === 'lower' ? 60 : 55;
 
   const homeFormFactor = 0.88 + (homeFormWeight / 10) * 0.24;
   const awayFormFactor = 0.88 + (awayFormWeight / 10) * 0.24;
@@ -67,7 +68,6 @@ export default function handler(req, res) {
 
   switch (sport) {
     case 'basketball': {
-      // Basketball uses actual points (e.g. 110 pts), so we average them directly with form/absence mods
       let homePts = Math.max(60, Math.round(((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * homeDefenseMod)) / 2));
       let awayPts = Math.max(60, Math.round(((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * awayDefenseMod)) / 2));
       
@@ -94,6 +94,7 @@ export default function handler(req, res) {
       const probHalfOver = Math.min(95, Math.max(5, (1 / (1 + Math.exp(-1.7 * halfZ))) * 100));
       const probHalfUnder = 100 - probHalfOver;
 
+      // Track max confidence among model outputs
       maxConfidence = Math.max(probOver, probUnder, probHalfOver, probHalfUnder);
 
       markets = [
@@ -159,16 +160,17 @@ export default function handler(req, res) {
         evaluateMarket(`12 (Home or Away Win)`, prob12)
       ];
 
+      let customOverProb = 0;
+      let customUnderProb = 0;
+
       if (customBookieLine !== null && !isNaN(customBookieLine)) {
         let cumulativeUnder = 0;
         let maxK = Math.floor(customBookieLine);
         for (let k = 0; k <= maxK; k++) {
           cumulativeUnder += poisson(k, totalXG);
         }
-        const customUnderProb = cumulativeUnder * 100;
-        const customOverProb = 100 - customUnderProb;
-
-        maxConfidence = Math.max(prob1X, customOverProb, customUnderProb);
+        customUnderProb = cumulativeUnder * 100;
+        customOverProb = 100 - customUnderProb;
 
         markets.push(
           evaluateMarket(`Over ${customBookieLine} Goals`, customOverProb),
@@ -178,8 +180,6 @@ export default function handler(req, res) {
         const probOver15 = (1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100;
         const probUnder25 = (poisson(0, totalXG) + poisson(1, totalXG) + poisson(2, totalXG)) * 100;
         
-        maxConfidence = Math.max(prob1X, probOver15, probUnder25);
-
         markets.push(
           evaluateMarket(`Over 1.5 Goals`, probOver15),
           evaluateMarket(`Under 2.5 Goals`, probUnder25)
@@ -188,6 +188,9 @@ export default function handler(req, res) {
 
       const probBTTS = ((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG))) * 100;
       markets.push(evaluateMarket(`Both Teams to Score (BTTS)`, probBTTS));
+
+      // Max confidence among core profitable lean markets
+      maxConfidence = Math.max(prob1X, customOverProb > 0 ? customOverProb : 0, probBTTS);
       break;
     }
   }
