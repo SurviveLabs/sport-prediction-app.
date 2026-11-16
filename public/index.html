@@ -46,10 +46,16 @@
     .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
     .badge-pass { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid #22c55e; }
     .badge-skip { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--danger); }
-    .market-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    
+    .market-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--border); }
     .market-row:last-child { border-bottom: none; }
-    .market-name { font-size: 0.85rem; }
-    .market-odds { font-size: 0.85rem; font-weight: 700; color: #38bdf8; }
+    .market-name { font-size: 0.85rem; font-weight: 500; }
+    .market-odds { font-size: 0.85rem; font-weight: 700; color: #38bdf8; text-align: right; }
+    
+    /* +EV Highlight Styling */
+    .value-bet-row { background: rgba(22, 163, 74, 0.15); border-left: 3px solid #22c55e; border-radius: 4px; }
+    .ev-badge { display: inline-block; background: #22c55e; color: #0f172a; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-top: 3px; }
+
     #results { display: none; }
   </style>
 </head>
@@ -134,6 +140,18 @@
       </div>
     </div>
 
+    <!-- Optional Bookmaker Inputs for Sharp Betting (+EV) -->
+    <div class="grid">
+      <div>
+        <label for="customLine">Bookie Line (Opt)</label>
+        <input type="number" step="0.5" id="customLine" placeholder="e.g. 2.5 or 215.5">
+      </div>
+      <div>
+        <label for="bookieOdds">Bookie Odds (Opt)</label>
+        <input type="number" step="0.01" id="bookieOdds" placeholder="e.g. 1.85">
+      </div>
+    </div>
+
     <button type="submit" id="submitBtn">ANALYZE MATCH</button>
   </form>
 
@@ -151,6 +169,9 @@
     btn.innerText = 'PROCESSING...';
     btn.disabled = true;
 
+    const customLineVal = document.getElementById('customLine').value;
+    const bookieOddsVal = document.getElementById('bookieOdds').value;
+
     const payload = {
       sport: document.getElementById('sportSelect').value,
       tier: document.getElementById('tierSelect').value,
@@ -163,7 +184,9 @@
       homeFormWeight: parseFloat(document.getElementById('homeFormWeight').value) || 7,
       awayFormWeight: parseFloat(document.getElementById('awayFormWeight').value) || 7,
       homeKeyAbsences: parseInt(document.getElementById('homeKeyAbsences').value) || 0,
-      awayKeyAbsences: parseInt(document.getElementById('awayKeyAbsences').value) || 0
+      awayKeyAbsences: parseInt(document.getElementById('awayKeyAbsences').value) || 0,
+      customBookieLine: customLineVal ? parseFloat(customLineVal) : null,
+      bookieOdds: bookieOddsVal ? parseFloat(bookieOddsVal) : null
     };
 
     try {
@@ -186,15 +209,21 @@
         badgeDiv.innerText = `QUALIFIED (GATE: ${data.requiredGate}%)`;
       } else {
         badgeDiv.className = 'badge badge-skip';
-        badgeDiv.innerText = `HIGH VARIANCE - SKIP (GATE: ${data.requiredGate}%)`;
+        badgeDiv.innerText = `HIGH VARIANCE (GATE: ${data.requiredGate}%)`;
       }
 
       scoreH3.innerText = `Expected Score: ${payload.homeName} ${data.expectedScore.home} - ${data.expectedScore.away} ${payload.awayName}`;
 
       marketsList.innerHTML = data.markets.map(m => `
-        <div class="market-row">
-          <div class="market-name">${m.name}</div>
-          <div class="market-odds">${m.probability}% (${m.fairOdds})</div>
+        <div class="market-row ${m.isValueBet ? 'value-bet-row' : ''}">
+          <div>
+            <div class="market-name">${m.name}</div>
+            ${m.evPercentage ? `<span class="ev-badge">+EV: ${m.evPercentage}</span>` : ''}
+          </div>
+          <div class="market-odds">
+            ${m.probability}% <span style="color: var(--muted); font-size: 0.75rem;">(Fair: ${m.fairOdds})</span>
+            ${m.bookieOdds ? `<br><span style="color: #4ade80; font-size: 0.8rem;">Bookie: ${m.bookieOdds}</span>` : ''}
+          </div>
         </div>
       `).join('');
 
@@ -209,4 +238,3 @@
 
 </body>
 </html>
-
