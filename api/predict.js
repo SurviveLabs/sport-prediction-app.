@@ -53,7 +53,6 @@ export default function handler(req, res) {
     let evPercentage = null;
     let isValueBet = false;
 
-    // Only calculate +EV if user actually entered bookie odds
     if (bookieOdds !== null && !isNaN(bookieOdds) && bookieOdds > 1.0) {
       evPercentage = Number((((clampedProb / 100) * bookieOdds) - 1) * 100).toFixed(1);
       isValueBet = bookieOdds > fairOdds;
@@ -71,20 +70,19 @@ export default function handler(req, res) {
 
   switch (sport) {
     case 'basketball': {
-      let homePts = Math.max(60, (rawHomeXG * 45) + 35);
-      let awayPts = Math.max(60, (rawAwayXG * 45) + 32);
+      // Correct scaling for basketball points (e.g. 70-120 range per team)
+      let homePts = Math.max(70, Math.round((rawHomeXG * 18) + 40));
+      let awayPts = Math.max(70, Math.round((rawAwayXG * 18) + 38));
       const totalXG = homePts + awayPts;
       
-      // Clean whole numbers for expected score display
-      homeScoreInt = Math.round(homePts);
-      awayScoreInt = Math.round(awayPts);
+      homeScoreInt = homePts;
+      awayScoreInt = awayPts;
 
       const calcTotalProb = (line, stdDev = 16.5) => {
         const z = (totalXG - line) / stdDev;
         return (1 / (1 + Math.exp(-1.7 * z))) * 100;
       };
 
-      // Auto-calculate standard line if user leaves custom line blank
       const targetLine = (customBookieLine !== null && !isNaN(customBookieLine)) 
         ? Number(customBookieLine) 
         : (Math.floor(totalXG - 3.5) + 0.5);
