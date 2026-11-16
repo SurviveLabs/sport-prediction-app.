@@ -53,7 +53,8 @@ export default function handler(req, res) {
     let evPercentage = null;
     let isValueBet = false;
 
-    if (bookieOdds !== null && bookieOdds > 1.0) {
+    // Only calculate +EV if user actually entered bookie odds
+    if (bookieOdds !== null && !isNaN(bookieOdds) && bookieOdds > 1.0) {
       evPercentage = Number((((clampedProb / 100) * bookieOdds) - 1) * 100).toFixed(1);
       isValueBet = bookieOdds > fairOdds;
     }
@@ -62,7 +63,7 @@ export default function handler(req, res) {
       name,
       probability: clampedProb,
       fairOdds: fairOdds.toFixed(2),
-      bookieOdds: bookieOdds !== null ? Number(bookieOdds).toFixed(2) : null,
+      bookieOdds: (bookieOdds !== null && !isNaN(bookieOdds)) ? Number(bookieOdds).toFixed(2) : null,
       evPercentage: evPercentage !== null ? `${evPercentage}%` : null,
       isValueBet
     };
@@ -74,6 +75,7 @@ export default function handler(req, res) {
       let awayPts = Math.max(60, (rawAwayXG * 45) + 32);
       const totalXG = homePts + awayPts;
       
+      // Clean whole numbers for expected score display
       homeScoreInt = Math.round(homePts);
       awayScoreInt = Math.round(awayPts);
 
@@ -82,11 +84,14 @@ export default function handler(req, res) {
         return (1 / (1 + Math.exp(-1.7 * z))) * 100;
       };
 
-      const targetLine = customBookieLine !== null ? customBookieLine : (Math.floor(totalXG - 3.5) + 0.5);
+      // Auto-calculate standard line if user leaves custom line blank
+      const targetLine = (customBookieLine !== null && !isNaN(customBookieLine)) 
+        ? Number(customBookieLine) 
+        : (Math.floor(totalXG - 3.5) + 0.5);
+
       const probOver = calcTotalProb(targetLine);
       const probUnder = 100 - probOver;
 
-      // 1st Half Calculations Restored
       const halfXG = totalXG * 0.51;
       const halfOverLine = Math.floor(halfXG - 2.0) + 0.5;
       const halfZ = (halfXG - halfOverLine) / 11.5;
@@ -155,7 +160,7 @@ export default function handler(req, res) {
         evaluateMarket(`12 (Home or Away Win)`, prob12)
       ];
 
-      if (customBookieLine !== null) {
+      if (customBookieLine !== null && !isNaN(customBookieLine)) {
         let cumulativeUnder = 0;
         let maxK = Math.floor(customBookieLine);
         for (let k = 0; k <= maxK; k++) {
