@@ -81,9 +81,12 @@ export default function handler(req, res) {
         return (1 / (1 + Math.exp(-1.7 * z))) * 100;
       };
 
-      const targetLine = (customBookieLine !== null && !isNaN(customBookieLine)) 
+      // SMART VALIDATION: If sport is basketball, reject any custom line under 50 (like a leftover football 2.5 line)
+      const validCustomLine = (customBookieLine !== null && !isNaN(customBookieLine) && Number(customBookieLine) > 50) 
         ? Number(customBookieLine) 
-        : (Math.floor(totalXG - 3.5) + 0.5);
+        : null;
+
+      const targetLine = validCustomLine !== null ? validCustomLine : (Math.floor(totalXG - 3.5) + 0.5);
 
       const probOver = calcTotalProb(targetLine);
       const probUnder = 100 - probOver;
@@ -149,7 +152,6 @@ export default function handler(req, res) {
       const pD = rawDraw / totalProb;
       const pA = rawAwayWin / totalProb;
 
-      // Clean percentage distributions ensuring exact logical bounds
       const prob1X = (pH + pD) * 100;
       const probX2 = (pA + pD) * 100;
       const prob12 = (pH + pA) * 100;
@@ -162,9 +164,14 @@ export default function handler(req, res) {
 
       let customOverProb = 0;
 
-      if (customBookieLine !== null && !isNaN(customBookieLine)) {
+      // For football, custom line must be a realistic goal line (e.g., <= 10)
+      const validFootballLine = (customBookieLine !== null && !isNaN(customBookieLine) && Number(customBookieLine) <= 10)
+        ? Number(customBookieLine)
+        : null;
+
+      if (validFootballLine !== null) {
         let cumulativeUnder = 0;
-        let maxK = Math.floor(customBookieLine);
+        let maxK = Math.floor(validFootballLine);
         for (let k = 0; k <= maxK; k++) {
           cumulativeUnder += poisson(k, totalXG);
         }
@@ -172,8 +179,8 @@ export default function handler(req, res) {
         customOverProb = 100 - customUnderProb;
 
         markets.push(
-          evaluateMarket(`Over ${customBookieLine} Goals`, customOverProb),
-          evaluateMarket(`Under ${customBookieLine} Goals`, customUnderProb)
+          evaluateMarket(`Over ${validFootballLine} Goals`, customOverProb),
+          evaluateMarket(`Under ${validFootballLine} Goals`, customUnderProb)
         );
       } else {
         const probOver15 = (1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100;
