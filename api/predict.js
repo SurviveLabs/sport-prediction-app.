@@ -53,7 +53,6 @@ export default function handler(req, res) {
     if (bookieOdds !== null && !isNaN(bookieOdds) && bookieOdds > 1.0) {
       const rawEV = (((clampedProb / 100) * bookieOdds) - 1) * 100;
       evPercentage = Number(rawEV).toFixed(1);
-      // STRICT CHECK: Only flag as value bet if EV is strictly positive AND bookie odds beat fair odds
       isValueBet = rawEV > 0 && bookieOdds > fairOdds;
     }
 
@@ -146,18 +145,14 @@ export default function handler(req, res) {
       }
 
       const totalProb = rawHomeWin + rawDraw + rawAwayWin;
-      const pHomeWin = rawHomeWin / totalProb;
-      const pDraw = rawDraw / totalProb;
-      const pAwayWin = rawAwayWin / totalProb;
+      const pH = rawHomeWin / totalProb;
+      const pD = rawDraw / totalProb;
+      const pA = rawAwayWin / totalProb;
 
-      // Corrected mutually consistent probabilities
-      const probHomeWin = pHomeWin * 100;
-      const probAwayWin = pAwayWin * 100;
-      const probDraw = pDraw * 100;
-
-      const prob1X = probHomeWin + probDraw;
-      const probX2 = probAwayWin + probDraw;
-      const prob12 = probHomeWin + probAwayWin;
+      // Clean percentage distributions ensuring exact logical bounds
+      const prob1X = (pH + pD) * 100;
+      const probX2 = (pA + pD) * 100;
+      const prob12 = (pH + pA) * 100;
 
       markets = [
         evaluateMarket(`1X (${homeName} or Draw)`, prob1X),
@@ -193,7 +188,7 @@ export default function handler(req, res) {
       const probBTTS = ((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG))) * 100;
       markets.push(evaluateMarket(`Both Teams to Score (BTTS)`, probBTTS));
 
-      maxConfidence = Math.max(prob1X, customOverProb > 0 ? customOverProb : 0, probBTTS);
+      maxConfidence = Math.max(prob1X, probX2, customOverProb > 0 ? customOverProb : 0);
       break;
     }
   }
