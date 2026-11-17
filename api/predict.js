@@ -13,14 +13,13 @@ export default function handler(req, res) {
   }
 
   const { 
-    sport = 'football', 
     tier = 'major', 
     homeName = 'Home', 
     awayName = 'Away', 
-    homeAvgScored = 1.5, 
-    homeAvgConceded = 1.0, 
-    awayAvgScored = 1.2, 
-    awayAvgConceded = 1.3,
+    homeAvgScored = 112.5, 
+    homeAvgConceded = 108.0, 
+    awayAvgScored = 109.0, 
+    awayAvgConceded = 111.5,
     homeFormWeight = 7,
     awayFormWeight = 7,
     homeKeyAbsences = 0,
@@ -29,21 +28,32 @@ export default function handler(req, res) {
     bookieOdds = null
   } = req.body;
 
+  // Sharp betting thresholds (55% Major, 60% Lower Tier)
   const requiredGate = tier === 'lower' ? 60 : 55;
 
+  // Form & Roster Absence Modifiers
   const homeFormFactor = 0.88 + (homeFormWeight / 10) * 0.24;
   const awayFormFactor = 0.88 + (awayFormWeight / 10) * 0.24;
 
-  const homeAttackMod = Math.max(0.75, 1.0 - (homeKeyAbsences * 0.04));
-  const homeDefenseMod = Math.min(1.30, 1.0 + (homeKeyAbsences * 0.04));
-  const awayAttackMod = Math.max(0.75, 1.0 - (awayKeyAbsences * 0.04));
-  const awayDefenseMod = Math.min(1.30, 1.0 + (awayKeyAbsences * 0.04));
+  const homeAttackMod = Math.max(0.75, 1.0 - (homeKeyAbsences * 0.03));
+  const homeDefenseMod = Math.min(1.25, 1.0 + (homeKeyAbsences * 0.03));
+  const awayAttackMod = Math.max(0.75, 1.0 - (awayKeyAbsences * 0.03));
+  const awayDefenseMod = Math.min(1.25, 1.0 + (awayKeyAbsences * 0.03));
 
-  let markets = [];
-  let maxConfidence = 0;
-  let homeScoreInt = 0;
-  let awayScoreInt = 0;
+  // Expected Team Points Calculation
+  let rawHomePts = ((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * homeDefenseMod)) / 2;
+  let rawAwayPts = ((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * awayDefenseMod)) / 2;
 
+  // Home court advantage adjustment (+3.0 points)
+  let homePts = Math.round(rawHomePts + 1.5);
+  let awayPts = Math.round(rawAwayPts - 1.5);
+  
+  homePts = Math.max(60, homePts);
+  awayPts = Math.max(60, awayPts);
+
+  const totalXG = homePts + awayPts;
+
+  // Market Evaluation Helper
   const evaluateMarket = (name, probability) => {
     const clampedProb = Math.min(99, Math.max(1, Math.round(probability)));
     const fairOdds = Number((100 / clampedProb).toFixed(2));
@@ -66,149 +76,52 @@ export default function handler(req, res) {
     };
   };
 
-  switch (sport) {
-    case 'basketball': {
-      let homePts = Math.max(60, Math.round(((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * homeDefenseMod)) / 2));
-      let awayPts = Math.max(60, Math.round(((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * awayDefenseMod)) / 2));
-      
-      const totalXG = homePts + awayPts;
-      
-      homeScoreInt = homePts;
-      awayScoreInt = awayPts;
+  // Basketball Totals Probability (Normal Distribution approximation)
+  const calcTotalProb = (line, stdDev = 15.5) => {
+    const z = (totalXG - line) / stdDev;
+    return (1 / (1 + Math.exp(-1.7 * z))) * 100;
+  };
 
-      const calcTotalProb = (line, stdDev = 16.5) => {
-        const z = (totalXG - line) / stdDev;
-        return (1 / (1 + Math.exp(-1.7 * z))) * 100;
-      };
+  // Valid Custom Line Check (Must be realistic basketball total points e.g. > 100)
+  const targetLine = (customBookieLine !== null && !isNaN(customBookieLine) && Number(customBookieLine) > 100)
+    ? Number(customBookieLine)
+    : (Math.floor(totalXG - 2.5) + 0.5);
 
-      // SMART VALIDATION: If sport is basketball, reject any custom line under 50 (like a leftover football 2.5 line)
-      const validCustomLine = (customBookieLine !== null && !isNaN(customBookieLine) && Number(customBookieLine) > 50) 
-        ? Number(customBookieLine) 
-        : null;
+  const probOver = calcTotalProb(targetLine);
+  const probUnder = 100 - probOver;
 
-      const targetLine = validCustomLine !== null ? validCustomLine : (Math.floor(totalXG - 3.5) + 0.5);
+  // 1st Half Totals (~51% of full game)
+  const halfXG = totalXG * 0.51;
+  const halfOverLine = Math.floor(halfXG - 1.5) + 0.5;
+  const halfZ = (halfXG - halfOverLine) / 10.5;
+  const probHalfOver = Math.min(95, Math.max(5, (1 / (1 + Math.exp(-1.7 * halfZ))) * 100));
+  const probHalfUnder = 100 - probHalfOver;
 
-      const probOver = calcTotalProb(targetLine);
-      const probUnder = 100 - probOver;
+  // Moneyline Probability via Point Differential
+  const pointDiff = homePts - awayPts;
+  const mlZ = pointDiff / 11.0;
+  const probHomeWin = Math.min(95, Math.max(5, (1 / (1 + Math.exp(-1.7 * mlZ))) * 100));
+  const probAwayWin = 100 - probHomeWin;
 
-      const halfXG = totalXG * 0.51;
-      const halfOverLine = Math.floor(halfXG - 2.0) + 0.5;
-      const halfZ = (halfXG - halfOverLine) / 11.5;
-      const probHalfOver = Math.min(95, Math.max(5, (1 / (1 + Math.exp(-1.7 * halfZ))) * 100));
-      const probHalfUnder = 100 - probHalfOver;
+  const markets = [
+    evaluateMarket(`Over ${targetLine} Total Points`, probOver),
+    evaluateMarket(`Under ${targetLine} Total Points`, probUnder),
+    evaluateMarket(`1st Half Over ${halfOverLine} Points`, probHalfOver),
+    evaluateMarket(`1st Half Under ${halfOverLine} Points`, probHalfUnder),
+    evaluateMarket(`${homeName} Win (Moneyline)`, probHomeWin),
+    evaluateMarket(`${awayName} Win (Moneyline)`, probAwayWin)
+  ];
 
-      maxConfidence = Math.max(probOver, probUnder, probHalfOver, probHalfUnder);
-
-      markets = [
-        evaluateMarket(`Over ${targetLine} Total Points`, probOver),
-        evaluateMarket(`Under ${targetLine} Total Points`, probUnder),
-        evaluateMarket(`1st Half Over ${halfOverLine} Points`, probHalfOver),
-        evaluateMarket(`1st Half Under ${halfOverLine} Points`, probHalfUnder)
-      ];
-      break;
-    }
-
-    case 'football':
-    default: {
-      let rawHomeXG = ((homeAvgScored * homeFormFactor * homeAttackMod) + (awayAvgConceded * homeDefenseMod)) / 2;
-      let rawAwayXG = ((awayAvgScored * awayFormFactor * awayAttackMod) + (homeAvgConceded * awayDefenseMod)) / 2;
-
-      let homeXG = Math.max(0.10, rawHomeXG * 1.12);
-      let awayXG = Math.max(0.10, rawAwayXG * 0.90);
-      const totalXG = homeXG + awayXG;
-
-      homeScoreInt = Math.round(homeXG);
-      awayScoreInt = Math.round(awayXG);
-
-      function poisson(k, lambda) {
-        let fact = 1;
-        for (let i = 2; i <= k; i++) fact *= i;
-        return (Math.pow(lambda, k) * Math.exp(-lambda)) / fact;
-      }
-
-      function dixonColesTau(h, a, lambdaH, lambdaA, rho = -0.11) {
-        if (h === 0 && a === 0) return 1 - (lambdaH * lambdaA * rho);
-        if (h === 1 && a === 0) return 1 + (lambdaA * rho);
-        if (h === 0 && a === 1) return 1 + (lambdaH * rho);
-        if (h === 1 && a === 1) return 1 - rho;
-        return 1.0;
-      }
-
-      let rawHomeWin = 0, rawDraw = 0, rawAwayWin = 0;
-      for (let h = 0; h <= 10; h++) {
-        for (let a = 0; a <= 10; a++) {
-          const rawProb = poisson(h, homeXG) * poisson(a, awayXG);
-          const tau = dixonColesTau(h, a, homeXG, awayXG);
-          const prob = Math.max(0, rawProb * tau);
-
-          if (h > a) rawHomeWin += prob;
-          else if (h === a) rawDraw += prob;
-          else rawAwayWin += prob;
-        }
-      }
-
-      const totalProb = rawHomeWin + rawDraw + rawAwayWin;
-      const pH = rawHomeWin / totalProb;
-      const pD = rawDraw / totalProb;
-      const pA = rawAwayWin / totalProb;
-
-      const prob1X = (pH + pD) * 100;
-      const probX2 = (pA + pD) * 100;
-      const prob12 = (pH + pA) * 100;
-
-      markets = [
-        evaluateMarket(`1X (${homeName} or Draw)`, prob1X),
-        evaluateMarket(`X2 (${awayName} or Draw)`, probX2),
-        evaluateMarket(`12 (Home or Away Win)`, prob12)
-      ];
-
-      let customOverProb = 0;
-
-      // For football, custom line must be a realistic goal line (e.g., <= 10)
-      const validFootballLine = (customBookieLine !== null && !isNaN(customBookieLine) && Number(customBookieLine) <= 10)
-        ? Number(customBookieLine)
-        : null;
-
-      if (validFootballLine !== null) {
-        let cumulativeUnder = 0;
-        let maxK = Math.floor(validFootballLine);
-        for (let k = 0; k <= maxK; k++) {
-          cumulativeUnder += poisson(k, totalXG);
-        }
-        const customUnderProb = cumulativeUnder * 100;
-        customOverProb = 100 - customUnderProb;
-
-        markets.push(
-          evaluateMarket(`Over ${validFootballLine} Goals`, customOverProb),
-          evaluateMarket(`Under ${validFootballLine} Goals`, customUnderProb)
-        );
-      } else {
-        const probOver15 = (1 - (poisson(0, totalXG) + poisson(1, totalXG))) * 100;
-        const probUnder25 = (poisson(0, totalXG) + poisson(1, totalXG) + poisson(2, totalXG)) * 100;
-        
-        markets.push(
-          evaluateMarket(`Over 1.5 Goals`, probOver15),
-          evaluateMarket(`Under 2.5 Goals`, probUnder25)
-        );
-      }
-
-      const probBTTS = ((1 - poisson(0, homeXG)) * (1 - poisson(0, awayXG))) * 100;
-      markets.push(evaluateMarket(`Both Teams to Score (BTTS)`, probBTTS));
-
-      maxConfidence = Math.max(prob1X, probX2, customOverProb > 0 ? customOverProb : 0);
-      break;
-    }
-  }
-
+  const maxConfidence = Math.max(probOver, probUnder, probHalfOver, probHalfUnder, probHomeWin, probAwayWin);
   const passedFilter = maxConfidence >= requiredGate;
 
   return res.status(200).json({
-    sport,
+    sport: 'basketball',
     leagueTier: tier,
     requiredGate,
     maxConfidence: Math.round(maxConfidence),
     passedFilter,
-    expectedScore: { home: homeScoreInt, away: awayScoreInt },
+    expectedScore: { home: homePts, away: awayPts },
     markets
   });
 }
