@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MATCHDAY — +EV Sports Prediction Engine</title>
+  <title>HOOPS +EV — Basketball Prediction Dashboard</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,7 +17,7 @@
       color: #e2e8f0;
       display: flex;
       justify-content: center;
-      padding: 20px 14px 40px;
+      padding: 16px 12px 40px;
       min-height: 100vh;
     }
 
@@ -29,18 +29,18 @@
     h1 {
       text-align: center;
       color: #38bdf8;
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 800;
       letter-spacing: 1.5px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .card {
       background-color: #131c2e;
       border: 1px solid #1e293b;
       border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
 
@@ -48,7 +48,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .field {
@@ -57,12 +57,12 @@
     }
 
     label {
-      font-size: 0.68rem;
+      font-size: 0.66rem;
       font-weight: 700;
       color: #94a3b8;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
     }
 
     input, select {
@@ -93,7 +93,7 @@
       letter-spacing: 0.8px;
       text-transform: uppercase;
       cursor: pointer;
-      margin-top: 6px;
+      margin-top: 4px;
       transition: background-color 0.2s;
     }
 
@@ -116,7 +116,7 @@
       font-weight: 800;
       padding: 4px 10px;
       border-radius: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       letter-spacing: 0.5px;
     }
 
@@ -133,22 +133,22 @@
     }
 
     .expected-score {
-      font-size: 1.05rem;
+      font-size: 1rem;
       font-weight: 800;
       color: #ffffff;
-      margin-bottom: 16px;
-      line-height: 1.35;
+      margin-bottom: 14px;
+      line-height: 1.3;
     }
 
     .market-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px;
+      padding: 11px;
       border-radius: 8px;
       background-color: #0e1626;
       border: 1px solid #1e293b;
-      margin-bottom: 10px;
+      margin-bottom: 9px;
     }
 
     .market-row:last-child {
@@ -163,11 +163,11 @@
     .market-left {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
     }
 
     .market-name {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: #f1f5f9;
     }
@@ -175,9 +175,9 @@
     .ev-badge {
       display: inline-block;
       width: fit-content;
-      font-size: 0.68rem;
+      font-size: 0.66rem;
       font-weight: 800;
-      padding: 2px 7px;
+      padding: 2px 6px;
       border-radius: 4px;
     }
 
@@ -195,11 +195,11 @@
       text-align: right;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .prob-text {
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       font-weight: 700;
       color: #38bdf8;
     }
@@ -207,11 +207,11 @@
     .fair-text {
       color: #94a3b8;
       font-weight: 500;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
     }
 
     .bookie-text {
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: #10b981;
     }
@@ -227,23 +227,16 @@
 </head>
 <body>
   <div class="container">
-    <h1>MATCHDAY</h1>
+    <h1>🏀 HOOPS +EV</h1>
 
     <div class="card">
       <form id="predictForm">
         <div class="grid">
-          <div class="field">
-            <label for="sportSelect">SPORT</label>
-            <select id="sportSelect">
-              <option value="football">Football (Soccer)</option>
-              <option value="basketball">Basketball</option>
-            </select>
-          </div>
-          <div class="field">
+          <div class="field" style="grid-column: span 2;">
             <label for="tierSelect">LEAGUE TIER</label>
             <select id="tierSelect">
-              <option value="major">Major Tier (55%)</option>
-              <option value="lower">Lower Tier (60%)</option>
+              <option value="major">Major Tier / NBA / EuroLeague (55% Gate)</option>
+              <option value="lower">Lower Tier / Regional (60% Gate)</option>
             </select>
           </div>
         </div>
@@ -261,23 +254,23 @@
 
         <div class="grid">
           <div class="field">
-            <label for="homeAvgScored" id="homeScoredLabel">HOME SCORED AVG</label>
-            <input type="number" step="0.01" id="homeAvgScored" placeholder="e.g. 1.8" required />
+            <label for="homeAvgScored">HOME PPG SCORED</label>
+            <input type="number" step="0.1" id="homeAvgScored" placeholder="e.g. 114.5" required />
           </div>
           <div class="field">
-            <label for="awayAvgScored" id="awayScoredLabel">AWAY SCORED AVG</label>
-            <input type="number" step="0.01" id="awayAvgScored" placeholder="e.g. 1.4" required />
+            <label for="awayAvgScored">AWAY PPG SCORED</label>
+            <input type="number" step="0.1" id="awayAvgScored" placeholder="e.g. 110.2" required />
           </div>
         </div>
 
         <div class="grid">
           <div class="field">
-            <label for="homeAvgConceded" id="homeConcededLabel">HOME CONCEDED AVG</label>
-            <input type="number" step="0.01" id="homeAvgConceded" placeholder="e.g. 0.9" required />
+            <label for="homeAvgConceded">HOME PPG CONCEDED</label>
+            <input type="number" step="0.1" id="homeAvgConceded" placeholder="e.g. 108.5" required />
           </div>
           <div class="field">
-            <label for="awayAvgConceded" id="awayConcededLabel">AWAY CONCEDED AVG</label>
-            <input type="number" step="0.01" id="awayAvgConceded" placeholder="e.g. 1.2" required />
+            <label for="awayAvgConceded">AWAY PPG CONCEDED</label>
+            <input type="number" step="0.1" id="awayAvgConceded" placeholder="e.g. 112.0" required />
           </div>
         </div>
 
@@ -294,27 +287,27 @@
 
         <div class="grid">
           <div class="field">
-            <label for="homeKeyAbsences">HOME MISSING STARTERS</label>
-            <input type="number" min="0" max="11" id="homeKeyAbsences" value="0" required />
+            <label for="homeKeyAbsences">HOME INJURED STARTERS</label>
+            <input type="number" min="0" max="5" id="homeKeyAbsences" value="0" required />
           </div>
           <div class="field">
-            <label for="awayKeyAbsences">AWAY MISSING STARTERS</label>
-            <input type="number" min="0" max="11" id="awayKeyAbsences" value="0" required />
+            <label for="awayKeyAbsences">AWAY INJURED STARTERS</label>
+            <input type="number" min="0" max="5" id="awayKeyAbsences" value="0" required />
           </div>
         </div>
 
         <div class="grid">
           <div class="field">
-            <label for="customBookieLine" id="bookieLineLabel">BOOKIE LINE (OPT)</label>
-            <input type="number" step="0.5" id="customBookieLine" placeholder="e.g. 2.5 (Goals)" />
+            <label for="customBookieLine">BOOKIE LINE (OPT)</label>
+            <input type="number" step="0.5" id="customBookieLine" placeholder="e.g. 222.5" />
           </div>
           <div class="field">
             <label for="bookieOdds">BOOKIE ODDS (OPT)</label>
-            <input type="number" step="0.01" id="bookieOdds" placeholder="e.g. 1.95" />
+            <input type="number" step="0.01" id="bookieOdds" placeholder="e.g. 1.90" />
           </div>
         </div>
 
-        <button type="submit" id="analyzeBtn">ANALYZE MATCH</button>
+        <button type="submit" id="analyzeBtn">ANALYZE BASKETBALL MATCH</button>
         <div class="error-msg" id="errorMsg"></div>
       </form>
     </div>
@@ -327,37 +320,6 @@
   </div>
 
   <script>
-    const sportSelect = document.getElementById('sportSelect');
-    const lineInput = document.getElementById('customBookieLine');
-    const homeScoredInput = document.getElementById('homeAvgScored');
-    const awayScoredInput = document.getElementById('awayAvgScored');
-    const homeConcededInput = document.getElementById('homeAvgConceded');
-    const awayConcededInput = document.getElementById('awayAvgConceded');
-
-    // Automatically update placeholders & clear mismatched sport lines when switching sports
-    sportSelect.addEventListener('change', (e) => {
-      const sport = e.target.value;
-      if (sport === 'basketball') {
-        lineInput.placeholder = 'e.g. 215.5 (Points)';
-        homeScoredInput.placeholder = 'e.g. 112.5';
-        awayScoredInput.placeholder = 'e.g. 108.0';
-        homeConcededInput.placeholder = 'e.g. 106.5';
-        awayConcededInput.placeholder = 'e.g. 110.2';
-        if (lineInput.value !== '' && Number(lineInput.value) < 50) {
-          lineInput.value = '';
-        }
-      } else {
-        lineInput.placeholder = 'e.g. 2.5 (Goals)';
-        homeScoredInput.placeholder = 'e.g. 1.8';
-        awayScoredInput.placeholder = 'e.g. 1.4';
-        homeConcededInput.placeholder = 'e.g. 0.9';
-        awayConcededInput.placeholder = 'e.g. 1.2';
-        if (lineInput.value !== '' && Number(lineInput.value) > 15) {
-          lineInput.value = '';
-        }
-      }
-    });
-
     document.getElementById('predictForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -366,7 +328,7 @@
       const resultsCard = document.getElementById('resultsCard');
 
       btn.disabled = true;
-      btn.textContent = 'ANALYZING...';
+      btn.textContent = 'ANALYZING HOOPS...';
       errorMsg.style.display = 'none';
 
       const homeName = document.getElementById('homeName').value.trim() || 'Home';
@@ -375,14 +337,13 @@
       const rawOdds = document.getElementById('bookieOdds').value;
 
       const payload = {
-        sport: sportSelect.value,
         tier: document.getElementById('tierSelect').value,
         homeName,
         awayName,
-        homeAvgScored: parseFloat(homeScoredInput.value),
-        awayAvgScored: parseFloat(awayScoredInput.value),
-        homeAvgConceded: parseFloat(homeConcededInput.value),
-        awayAvgConceded: parseFloat(awayConcededInput.value),
+        homeAvgScored: parseFloat(document.getElementById('homeAvgScored').value),
+        awayAvgScored: parseFloat(document.getElementById('awayAvgScored').value),
+        homeAvgConceded: parseFloat(document.getElementById('homeAvgConceded').value),
+        awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value),
         homeFormWeight: parseInt(document.getElementById('homeFormWeight').value, 10),
         awayFormWeight: parseInt(document.getElementById('awayFormWeight').value, 10),
         homeKeyAbsences: parseInt(document.getElementById('homeKeyAbsences').value, 10),
@@ -404,7 +365,7 @@
 
         const data = await response.json();
 
-        // Render Gate Badge
+        // Gate Badge
         const gateBadge = document.getElementById('gateBadge');
         if (data.passedFilter) {
           gateBadge.className = 'gate-badge gate-pass';
@@ -414,11 +375,11 @@
           gateBadge.textContent = `HIGH VARIANCE (GATE: ${data.requiredGate}%)`;
         }
 
-        // Render Expected Score
+        // Expected Score
         document.getElementById('expectedScore').textContent =
           `Expected Score: ${homeName} ${data.expectedScore.home} - ${data.expectedScore.away} ${awayName}`;
 
-        // Render Markets
+        // Markets
         const marketsList = document.getElementById('marketsList');
         marketsList.innerHTML = '';
 
@@ -458,7 +419,7 @@
         errorMsg.style.display = 'block';
       } finally {
         btn.disabled = false;
-        btn.textContent = 'ANALYZE MATCH';
+        btn.textContent = 'ANALYZE BASKETBALL MATCH';
       }
     });
   </script>
