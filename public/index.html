@@ -1,240 +1,466 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MATCHDAY - Sports Prediction Engine</title>
-
-  <!-- PWA & Mobile Settings -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0f172a">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-  <!-- Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('SW Registered:', reg.scope))
-          .catch(err => console.error('SW Fail:', err));
-      });
-    }
-  </script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MATCHDAY — +EV Sports Prediction Engine</title>
   <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --accent: #2563eb;
-      --green: #16a34a;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --border: #334155;
-      --danger: #ef4444;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
-    .container { max-width: 500px; width: 100%; margin: 0 auto; }
-    h1 { text-align: center; margin-bottom: 20px; letter-spacing: 1px; color: #38bdf8; font-size: 1.5rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; font-weight: 600; text-transform: uppercase; }
-    select, input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    button { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 16px; }
-    button:active { opacity: 0.8; }
-    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
-    .badge-pass { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid #22c55e; }
-    .badge-skip { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--danger); }
-    
-    .market-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--border); }
-    .market-row:last-child { border-bottom: none; }
-    .market-name { font-size: 0.85rem; font-weight: 500; }
-    .market-odds { font-size: 0.85rem; font-weight: 700; color: #38bdf8; text-align: right; }
-    
-    /* +EV Highlight Styling */
-    .value-bet-row { background: rgba(22, 163, 74, 0.15); border-left: 3px solid #22c55e; border-radius: 4px; }
-    .ev-badge { display: inline-block; background: #22c55e; color: #0f172a; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-top: 3px; }
 
-    #results { display: none; }
+    body {
+      background-color: #0b111e;
+      color: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      padding: 20px 14px 40px;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #38bdf8;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background-color: #131c2e;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      background-color: #0b111e;
+      border: 1px solid #26334d;
+      border-radius: 8px;
+      color: #f8fafc;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: #38bdf8;
+    }
+
+    button {
+      width: 100%;
+      background-color: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    button:disabled {
+      background-color: #334155;
+      cursor: not-allowed;
+    }
+
+    #resultsCard {
+      display: none;
+    }
+
+    .gate-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .gate-pass {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid #10b981;
+    }
+
+    .gate-fail {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid #f59e0b;
+    }
+
+    .expected-score {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 16px;
+      line-height: 1.35;
+    }
+
+    .market-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-radius: 8px;
+      background-color: #0e1626;
+      border: 1px solid #1e293b;
+      margin-bottom: 10px;
+    }
+
+    .market-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .value-bet-row {
+      background-color: rgba(16, 185, 129, 0.1);
+      border: 1px solid #10b981;
+    }
+
+    .market-left {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .market-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .ev-badge {
+      display: inline-block;
+      width: fit-content;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .ev-positive {
+      background-color: #10b981;
+      color: #042f2e;
+    }
+
+    .ev-negative {
+      background-color: #1e293b;
+      color: #94a3b8;
+    }
+
+    .market-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .prob-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .fair-text {
+      color: #94a3b8;
+      font-weight: 500;
+      font-size: 0.78rem;
+    }
+
+    .bookie-text {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #10b981;
+    }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1>MATCHDAY</h1>
 
-<div class="container">
-  <h1>MATCHDAY</h1>
-
-  <form id="predictForm" class="card">
-    <div class="grid">
-      <div>
-        <label for="sportSelect">Sport</label>
-        <select id="sportSelect">
-          <option value="football">Football (Soccer)</option>
-          <option value="basketball">Basketball</option>
-        </select>
-      </div>
-      <div>
-        <label for="tierSelect">League Tier</label>
-        <select id="tierSelect">
-         <option value="major">Major Tier (55%)</option>
-         <option value="lower">Lower Tier (60%)</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div>
-        <label for="homeName">Home Team</label>
-        <input type="text" id="homeName" placeholder="Home Team">
-      </div>
-      <div>
-        <label for="awayName">Away Team</label>
-        <input type="text" id="awayName" placeholder="Away Team">
-      </div>
-    </div>
-
-    <!-- Scored Stats -->
-    <div class="grid">
-      <div>
-        <label for="homeAvgScored">Home Scored Avg</label>
-        <input type="number" step="0.01" id="homeAvgScored" placeholder="e.g. 1.8" required>
-      </div>
-      <div>
-        <label for="awayAvgScored">Away Scored Avg</label>
-        <input type="number" step="0.01" id="awayAvgScored" placeholder="e.g. 1.2" required>
-      </div>
-    </div>
-
-    <!-- Conceded Stats -->
-    <div class="grid">
-      <div>
-        <label for="homeAvgConceded">Home Conceded Avg</label>
-        <input type="number" step="0.01" id="homeAvgConceded" placeholder="e.g. 0.9" required>
-      </div>
-      <div>
-        <label for="awayAvgConceded">Away Conceded Avg</label>
-        <input type="number" step="0.01" id="awayAvgConceded" placeholder="e.g. 1.4" required>
-      </div>
-    </div>
-
-    <!-- Deep Prediction Inputs -->
-    <div class="grid">
-      <div>
-        <label for="homeFormWeight">Home Form (1-10)</label>
-        <input type="number" id="homeFormWeight" value="7" min="1" max="10">
-      </div>
-      <div>
-        <label for="awayFormWeight">Away Form (1-10)</label>
-        <input type="number" id="awayFormWeight" value="7" min="1" max="10">
-      </div>
-    </div>
-
-    <div class="grid">
-      <div>
-        <label for="homeKeyAbsences">Home Missing Starters</label>
-        <input type="number" id="homeKeyAbsences" value="0" min="0" max="5">
-      </div>
-      <div>
-        <label for="awayKeyAbsences">Away Missing Starters</label>
-        <input type="number" id="awayKeyAbsences" value="0" min="0" max="5">
-      </div>
-    </div>
-
-    <!-- Optional Bookmaker Inputs for Sharp Betting (+EV) -->
-    <div class="grid">
-      <div>
-        <label for="customLine">Bookie Line (Opt)</label>
-        <input type="number" step="0.5" id="customLine" placeholder="e.g. 2.5 or 215.5">
-      </div>
-      <div>
-        <label for="bookieOdds">Bookie Odds (Opt)</label>
-        <input type="number" step="0.01" id="bookieOdds" placeholder="e.g. 1.85">
-      </div>
-    </div>
-
-    <button type="submit" id="submitBtn">ANALYZE MATCH</button>
-  </form>
-
-  <div id="results" class="card">
-    <div id="statusBadge" class="badge"></div>
-    <h3 id="expectedScore" style="margin-bottom: 12px; font-size: 1.1rem;"></h3>
-    <div id="marketsList"></div>
-  </div>
-</div>
-
-<script>
-  document.getElementById('predictForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    btn.innerText = 'PROCESSING...';
-    btn.disabled = true;
-
-    const customLineVal = document.getElementById('customLine').value;
-    const bookieOddsVal = document.getElementById('bookieOdds').value;
-
-    const payload = {
-      sport: document.getElementById('sportSelect').value,
-      tier: document.getElementById('tierSelect').value,
-      homeName: document.getElementById('homeName').value || 'Home',
-      awayName: document.getElementById('awayName').value || 'Away',
-      homeAvgScored: parseFloat(document.getElementById('homeAvgScored').value) || 0,
-      homeAvgConceded: parseFloat(document.getElementById('homeAvgConceded').value) || 0,
-      awayAvgScored: parseFloat(document.getElementById('awayAvgScored').value) || 0,
-      awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value) || 0,
-      homeFormWeight: parseFloat(document.getElementById('homeFormWeight').value) || 7,
-      awayFormWeight: parseFloat(document.getElementById('awayFormWeight').value) || 7,
-      homeKeyAbsences: parseInt(document.getElementById('homeKeyAbsences').value) || 0,
-      awayKeyAbsences: parseInt(document.getElementById('awayKeyAbsences').value) || 0,
-      customBookieLine: customLineVal ? parseFloat(customLineVal) : null,
-      bookieOdds: bookieOddsVal ? parseFloat(bookieOddsVal) : null
-    };
-
-    try {
-      const res = await fetch('/api/predict', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      const resultsDiv = document.getElementById('results');
-      const badgeDiv = document.getElementById('statusBadge');
-      const scoreH3 = document.getElementById('expectedScore');
-      const marketsList = document.getElementById('marketsList');
-
-      resultsDiv.style.display = 'block';
-
-      if (data.passedFilter) {
-        badgeDiv.className = 'badge badge-pass';
-        badgeDiv.innerText = `QUALIFIED (GATE: ${data.requiredGate}%)`;
-      } else {
-        badgeDiv.className = 'badge badge-skip';
-        badgeDiv.innerText = `HIGH VARIANCE (GATE: ${data.requiredGate}%)`;
-      }
-
-      scoreH3.innerText = `Expected Score: ${payload.homeName} ${data.expectedScore.home} - ${data.expectedScore.away} ${payload.awayName}`;
-
-      marketsList.innerHTML = data.markets.map(m => `
-        <div class="market-row ${m.isValueBet ? 'value-bet-row' : ''}">
-          <div>
-            <div class="market-name">${m.name}</div>
-            ${m.evPercentage ? `<span class="ev-badge">+EV: ${m.evPercentage}</span>` : ''}
+    <div class="card">
+      <form id="predictForm">
+        <div class="grid">
+          <div class="field">
+            <label for="sportSelect">SPORT</label>
+            <select id="sportSelect">
+              <option value="football">Football (Soccer)</option>
+              <option value="basketball">Basketball</option>
+            </select>
           </div>
-          <div class="market-odds">
-            ${m.probability}% <span style="color: var(--muted); font-size: 0.75rem;">(Fair: ${m.fairOdds})</span>
-            ${m.bookieOdds ? `<br><span style="color: #4ade80; font-size: 0.8rem;">Bookie: ${m.bookieOdds}</span>` : ''}
+          <div class="field">
+            <label for="tierSelect">LEAGUE TIER</label>
+            <select id="tierSelect">
+              <option value="major">Major Tier (55%)</option>
+              <option value="lower">Lower Tier (60%)</option>
+            </select>
           </div>
         </div>
-      `).join('');
 
-    } catch (err) {
-      alert('Error fetching prediction. Please check your backend deployment.');
-    } finally {
-      btn.innerText = 'ANALYZE MATCH';
-      btn.disabled = false;
-    }
-  });
-</script>
+        <div class="grid">
+          <div class="field">
+            <label for="homeName">HOME TEAM</label>
+            <input type="text" id="homeName" placeholder="Home Team" required />
+          </div>
+          <div class="field">
+            <label for="awayName">AWAY TEAM</label>
+            <input type="text" id="awayName" placeholder="Away Team" required />
+          </div>
+        </div>
 
+        <div class="grid">
+          <div class="field">
+            <label for="homeAvgScored" id="homeScoredLabel">HOME SCORED AVG</label>
+            <input type="number" step="0.01" id="homeAvgScored" placeholder="e.g. 1.8" required />
+          </div>
+          <div class="field">
+            <label for="awayAvgScored" id="awayScoredLabel">AWAY SCORED AVG</label>
+            <input type="number" step="0.01" id="awayAvgScored" placeholder="e.g. 1.4" required />
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="homeAvgConceded" id="homeConcededLabel">HOME CONCEDED AVG</label>
+            <input type="number" step="0.01" id="homeAvgConceded" placeholder="e.g. 0.9" required />
+          </div>
+          <div class="field">
+            <label for="awayAvgConceded" id="awayConcededLabel">AWAY CONCEDED AVG</label>
+            <input type="number" step="0.01" id="awayAvgConceded" placeholder="e.g. 1.2" required />
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="homeFormWeight">HOME FORM (1-10)</label>
+            <input type="number" min="1" max="10" id="homeFormWeight" value="7" required />
+          </div>
+          <div class="field">
+            <label for="awayFormWeight">AWAY FORM (1-10)</label>
+            <input type="number" min="1" max="10" id="awayFormWeight" value="6" required />
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="homeKeyAbsences">HOME MISSING STARTERS</label>
+            <input type="number" min="0" max="11" id="homeKeyAbsences" value="0" required />
+          </div>
+          <div class="field">
+            <label for="awayKeyAbsences">AWAY MISSING STARTERS</label>
+            <input type="number" min="0" max="11" id="awayKeyAbsences" value="0" required />
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="customBookieLine" id="bookieLineLabel">BOOKIE LINE (OPT)</label>
+            <input type="number" step="0.5" id="customBookieLine" placeholder="e.g. 2.5 (Goals)" />
+          </div>
+          <div class="field">
+            <label for="bookieOdds">BOOKIE ODDS (OPT)</label>
+            <input type="number" step="0.01" id="bookieOdds" placeholder="e.g. 1.95" />
+          </div>
+        </div>
+
+        <button type="submit" id="analyzeBtn">ANALYZE MATCH</button>
+        <div class="error-msg" id="errorMsg"></div>
+      </form>
+    </div>
+
+    <div class="card" id="resultsCard">
+      <div id="gateBadge" class="gate-badge"></div>
+      <div id="expectedScore" class="expected-score"></div>
+      <div id="marketsList"></div>
+    </div>
+  </div>
+
+  <script>
+    const sportSelect = document.getElementById('sportSelect');
+    const lineInput = document.getElementById('customBookieLine');
+    const homeScoredInput = document.getElementById('homeAvgScored');
+    const awayScoredInput = document.getElementById('awayAvgScored');
+    const homeConcededInput = document.getElementById('homeAvgConceded');
+    const awayConcededInput = document.getElementById('awayAvgConceded');
+
+    // Automatically update placeholders & clear mismatched sport lines when switching sports
+    sportSelect.addEventListener('change', (e) => {
+      const sport = e.target.value;
+      if (sport === 'basketball') {
+        lineInput.placeholder = 'e.g. 215.5 (Points)';
+        homeScoredInput.placeholder = 'e.g. 112.5';
+        awayScoredInput.placeholder = 'e.g. 108.0';
+        homeConcededInput.placeholder = 'e.g. 106.5';
+        awayConcededInput.placeholder = 'e.g. 110.2';
+        if (lineInput.value !== '' && Number(lineInput.value) < 50) {
+          lineInput.value = '';
+        }
+      } else {
+        lineInput.placeholder = 'e.g. 2.5 (Goals)';
+        homeScoredInput.placeholder = 'e.g. 1.8';
+        awayScoredInput.placeholder = 'e.g. 1.4';
+        homeConcededInput.placeholder = 'e.g. 0.9';
+        awayConcededInput.placeholder = 'e.g. 1.2';
+        if (lineInput.value !== '' && Number(lineInput.value) > 15) {
+          lineInput.value = '';
+        }
+      }
+    });
+
+    document.getElementById('predictForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = document.getElementById('analyzeBtn');
+      const errorMsg = document.getElementById('errorMsg');
+      const resultsCard = document.getElementById('resultsCard');
+
+      btn.disabled = true;
+      btn.textContent = 'ANALYZING...';
+      errorMsg.style.display = 'none';
+
+      const homeName = document.getElementById('homeName').value.trim() || 'Home';
+      const awayName = document.getElementById('awayName').value.trim() || 'Away';
+      const rawLine = document.getElementById('customBookieLine').value;
+      const rawOdds = document.getElementById('bookieOdds').value;
+
+      const payload = {
+        sport: sportSelect.value,
+        tier: document.getElementById('tierSelect').value,
+        homeName,
+        awayName,
+        homeAvgScored: parseFloat(homeScoredInput.value),
+        awayAvgScored: parseFloat(awayScoredInput.value),
+        homeAvgConceded: parseFloat(homeConcededInput.value),
+        awayAvgConceded: parseFloat(awayConcededInput.value),
+        homeFormWeight: parseInt(document.getElementById('homeFormWeight').value, 10),
+        awayFormWeight: parseInt(document.getElementById('awayFormWeight').value, 10),
+        homeKeyAbsences: parseInt(document.getElementById('homeKeyAbsences').value, 10),
+        awayKeyAbsences: parseInt(document.getElementById('awayKeyAbsences').value, 10),
+        customBookieLine: rawLine !== '' ? parseFloat(rawLine) : null,
+        bookieOdds: rawOdds !== '' ? parseFloat(rawOdds) : null
+      };
+
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Render Gate Badge
+        const gateBadge = document.getElementById('gateBadge');
+        if (data.passedFilter) {
+          gateBadge.className = 'gate-badge gate-pass';
+          gateBadge.textContent = `QUALIFIED (GATE: ${data.requiredGate}%)`;
+        } else {
+          gateBadge.className = 'gate-badge gate-fail';
+          gateBadge.textContent = `HIGH VARIANCE (GATE: ${data.requiredGate}%)`;
+        }
+
+        // Render Expected Score
+        document.getElementById('expectedScore').textContent =
+          `Expected Score: ${homeName} ${data.expectedScore.home} - ${data.expectedScore.away} ${awayName}`;
+
+        // Render Markets
+        const marketsList = document.getElementById('marketsList');
+        marketsList.innerHTML = '';
+
+        data.markets.forEach((m) => {
+          const row = document.createElement('div');
+          row.className = `market-row ${m.isValueBet ? 'value-bet-row' : ''}`;
+
+          let evHtml = '';
+          if (m.evPercentage !== null) {
+            const evClass = m.isValueBet ? 'ev-positive' : 'ev-negative';
+            evHtml = `<span class="ev-badge ${evClass}">+EV: ${m.evPercentage}</span>`;
+          }
+
+          let bookieHtml = '';
+          if (m.bookieOdds !== null) {
+            bookieHtml = `<div class="bookie-text">Bookie: ${m.bookieOdds}</div>`;
+          }
+
+          row.innerHTML = `
+            <div class="market-left">
+              <div class="market-name">${m.name}</div>
+              ${evHtml}
+            </div>
+            <div class="market-right">
+              <div class="prob-text">${m.probability}% <span class="fair-text">(Fair: ${m.fairOdds})</span></div>
+              ${bookieHtml}
+            </div>
+          `;
+
+          marketsList.appendChild(row);
+        });
+
+        resultsCard.style.display = 'block';
+        resultsCard.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        errorMsg.textContent = 'Error connecting to prediction API. Check deployment.';
+        errorMsg.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'ANALYZE MATCH';
+      }
+    });
+  </script>
 </body>
 </html>
