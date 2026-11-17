@@ -275,24 +275,16 @@
         </div>
 
         <div class="grid">
-          <div class="field">
+          <div class="field" style="grid-column: span 2;">
             <label for="homeFormWeight">HOME FORM (1-10)</label>
             <input type="number" min="1" max="10" id="homeFormWeight" value="7" required />
-          </div>
-          <div class="field">
-            <label for="awayFormWeight">AWAY FORM (1-10)</label>
-            <input type="number" min="1" max="10" id="awayFormWeight" value="6" required />
           </div>
         </div>
 
         <div class="grid">
-          <div class="field">
-            <label for="homeKeyAbsences">HOME INJURED STARTERS</label>
-            <input type="number" min="0" max="5" id="homeKeyAbsences" value="0" required />
-          </div>
-          <div class="field">
-            <label for="awayKeyAbsences">AWAY INJURED STARTERS</label>
-            <input type="number" min="0" max="5" id="awayKeyAbsences" value="0" required />
+          <div class="field" style="grid-column: span 2;">
+            <label for="awayFormWeight">AWAY FORM (1-10)</label>
+            <input type="number" min="1" max="10" id="awayFormWeight" value="6" required />
           </div>
         </div>
 
@@ -346,8 +338,6 @@
         awayAvgConceded: parseFloat(document.getElementById('awayAvgConceded').value),
         homeFormWeight: parseInt(document.getElementById('homeFormWeight').value, 10),
         awayFormWeight: parseInt(document.getElementById('awayFormWeight').value, 10),
-        homeKeyAbsences: parseInt(document.getElementById('homeKeyAbsences').value, 10),
-        awayKeyAbsences: parseInt(document.getElementById('awayKeyAbsences').value, 10),
         customBookieLine: rawLine !== '' ? parseFloat(rawLine) : null,
         bookieOdds: rawOdds !== '' ? parseFloat(rawOdds) : null
       };
