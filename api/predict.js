@@ -33,15 +33,12 @@ export default function handler(req, res) {
   const homeFormFactor = 0.88 + (homeFormWeight / 10) * 0.24;
   const awayFormFactor = 0.88 + (awayFormWeight / 10) * 0.24;
 
-  // Expected Team Points Calculation (pure PPG + Form + Home Court Advantage)
+  // Expected Team Points Calculation (PPG + Form + Home Court Advantage)
   let rawHomePts = ((homeAvgScored * homeFormFactor) + awayAvgConceded) / 2;
   let rawAwayPts = ((awayAvgScored * awayFormFactor) + homeAvgConceded) / 2;
 
-  let homePts = Math.round(rawHomePts + 1.5);
-  let awayPts = Math.round(rawAwayPts - 1.5);
-  
-  homePts = Math.max(60, homePts);
-  awayPts = Math.max(60, awayPts);
+  let homePts = Math.max(60, Math.round(rawHomePts + 1.5));
+  let awayPts = Math.max(60, Math.round(rawAwayPts - 1.5));
 
   const totalXG = homePts + awayPts;
 
@@ -98,13 +95,10 @@ export default function handler(req, res) {
     evaluateMarket(`Over ${targetLine} Total Points`, probOver),
     evaluateMarket(`Under ${targetLine} Total Points`, probUnder),
     evaluateMarket(`1st Half Over ${halfOverLine} Points`, probHalfOver),
-    evaluateMarket(`1st Half Under ${halfHalfUnder = halfHalfUnder || halfHalfUnder} Points`, probHalfUnder), // Clean fallback
+    evaluateMarket(`1st Half Under ${halfOverLine} Points`, probHalfUnder),
     evaluateMarket(`${homeName} Win (Moneyline)`, probHomeWin),
     evaluateMarket(`${awayName} Win (Moneyline)`, probAwayWin)
   ];
-
-  // Fix 1st half market name display cleanly
-  markets[3].name = `1st Half Under ${halfOverLine} Points`;
 
   const maxConfidence = Math.max(probOver, probUnder, probHalfOver, probHalfUnder, probHomeWin, probAwayWin);
   const passedFilter = maxConfidence >= requiredGate;
